@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  GREETING: Hello, world!
+
+tasks:
+  default:
+    desc: Print a greeting message
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  bluetooth:test-integration:
+    desc: Run physical treadmill integration test for bluetooth package
+    requires:
+      vars: [BLE_TARGET]
+    cmds:
+      - go test -v -tags integration ./bluetooth -run TestBleTreadmillIntegration_PhysicalDevice
+    vars:
+      TREADMILL_ITEST: 1
+      TREADMILL_BLE_TARGET: "{{BLE_TARGET}}"
+      GOCACHE: /tmp/go-build-cache

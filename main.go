@@ -462,491 +462,34 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"math"
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/go-ble/ble"
-	"github.com/go-ble/ble/darwin"
-	"github.com/go-ble/ble/linux"
+	"treadmill/bluetooth"
 )
-
-// --- UUIDs (FFF0 / FFF1 notify / FFF2 write) ---
-var (
-	uServiceFFF0 = ble.MustParse("0000fff0-0000-1000-8000-00805f9b34fb")
-	uCharFFF1    = ble.MustParse("0000fff1-0000-1000-8000-00805f9b34fb") // NOTIFY
-	uCharFFF2    = ble.MustParse("0000fff2-0000-1000-8000-00805f9b34fb") // WRITE
-)
-
-// --- Domain API (to, o co prosiłeś) ---
-
-type Command struct {
-	Start   bool
-	Stop    bool
-	Speed   *float64 // km/h 0.0..22.0 step 0.1
-	Incline *int     // 0..22
-	// Na tej bieżni: Speed/Incline działa tylko jako MASTER (01).
-	// Żeby NIE blokować panelu, robimy auto-release (SLAVE START).
-	Master bool
-
-	// Jeśli true i wysyłamy MASTER speed/incline => po tym leci SLAVE START.
-	ReleaseAfter bool
-}
-
-type Notification struct {
-	RawHex string
-
-	State int // z protokołu (g.TYPE_STATE_*)
-	Speed float64
-	// Mapowanie incline na podstawie obserwacji:
-	// - byte[6] wygląda jak aktualny incline (np. 02/03 pojawiało się w notify przy zmianie incline)
-	Incline int
-
-	// Poniżej to są “rozsądne” hipotezy (do weryfikacji u Ciebie):
-	// w 18B: ... [10..11] wygląda jak czas (sekundy, little-endian) bo rośnie 0D,0E...
-	TimeSeconds int
-
-	// W wielu statusach miałeś 00-00, ale gdy ruszy – powinno się pojawić.
-	// Traktujemy to jako dystans w setnych km (czyli 1 = 10m) — do weryfikacji.
-	DistanceUnits int
-
-	// ... [14..15] wygląda jak kalorie (little-endian) — do weryfikacji.
-	CaloriesUnits int
-}
-
-type Treadmill interface {
-	Connect(ctx context.Context, nameOrAddr string) error
-	Send(ctx context.Context, cmd Command) error
-	Subscribe() <-chan Notification
-	Close() error
-}
-
-// --- BLE implementation ---
-
-type BleTreadmill struct {
-	addr string
-	name string
-
-	cln     ble.Client
-	chWrite *ble.Characteristic
-	chNotif *ble.Characteristic
-
-	notifCh chan Notification
-
-	mu         sync.RWMutex
-	lastNotif  Notification
-	connected  bool
-	cancelConn func()
-
-	// serialize writes (żeby nie robić równoległych write na FFF2)
-	writeMu sync.Mutex
-}
-
-func NewBleTreadmill() *BleTreadmill {
-	return &BleTreadmill{
-		notifCh: make(chan Notification, 100),
-	}
-}
-
-func (t *BleTreadmill) Subscribe() <-chan Notification { return t.notifCh }
-
-func (t *BleTreadmill) Last() Notification {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	return t.lastNotif
-}
-
-func (t *BleTreadmill) Close() error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if t.cancelConn != nil {
-		t.cancelConn()
-		t.cancelConn = nil
-	}
-	if t.cln != nil {
-		t.cln.CancelConnection()
-		t.cln = nil
-	}
-	t.connected = false
-	return nil
-}
-
-func initDevice() (ble.Device, error) {
-	switch runtime.GOOS {
-	case "darwin":
-		return darwin.NewDevice()
-	case "linux":
-		return linux.NewDevice()
-	default:
-		return nil, fmt.Errorf("unsupported OS: %s (ten skrypt wspiera macOS i Linux)", runtime.GOOS)
-	}
-}
-
-func uuidShort(u ble.UUID) string {
-	s := strings.ToLower(u.String())
-	if len(s) >= 4 {
-		return s[len(s)-4:]
-	}
-	return s
-}
-
-func fmtHex(b []byte) string {
-	out := strings.ToUpper(hex.EncodeToString(b))
-	var parts []string
-	for i := 0; i < len(out); i += 2 {
-		parts = append(parts, out[i:i+2])
-	}
-	return strings.Join(parts, "-")
-}
-
-func decodeHex(s string) ([]byte, error) {
-	clean := strings.NewReplacer(" ", "", "-", "", ":", "", "0x", "", "0X", "").Replace(s)
-	if len(clean)%2 != 0 {
-		return nil, fmt.Errorf("hex ma nieparzystą długość: %d", len(clean))
-	}
-	return hex.DecodeString(clean)
-}
-
-// buildTxFB buduje ramkę identycznie jak w apk (model/c.b()):
-// FB <len> <code> <type> <master> <datas...> <chk> FC
-// chk = suma: len + code + type + master + sum(datas)  (mod 256)
-func buildTxFB(code, typ, master byte, datas ...byte) []byte {
-	l := byte(3 + len(datas)) // code+type+master + datas
-
-	frame := make([]byte, 0, 2+int(l)+1)
-	frame = append(frame, 0xFB, l, code, typ, master)
-	frame = append(frame, datas...)
-
-	var sum int
-	sum += int(l) + int(code) + int(typ) + int(master)
-	for _, d := range datas {
-		sum += int(d)
-	}
-	chk := byte(sum & 0xFF)
-	frame = append(frame, chk, 0xFC)
-	return frame
-}
-
-// --- Commands (Twoje działające ramki + release) ---
-
-func frameStart(master bool) []byte {
-	// działa u Ciebie: FB-03-A2-01-01-A7-FC
-	// SLAVE start (release) u Ciebie działa: FB-03-A2-01-00-A6-FC
-	m := byte(0x00)
-	if master {
-		m = 0x01
-	}
-	return buildTxFB(0xA2, 0x01, m)
-}
-
-func frameStop(master bool) []byte {
-	// działa u Ciebie: FB-03-A2-04-01-AA-FC
-	m := byte(0x00)
-	if master {
-		m = 0x01
-	}
-	return buildTxFB(0xA2, 0x04, m)
-}
-
-// frameSetSpeedIncline to to, co obserwujesz jako działające:
-// FB-07-A1-02-01-<speed10> - <incline> - 00 - 00 - <chk> - FC
-//
-// WAŻNE: to “przejmuje panel”, jeśli master=01,
-// dlatego po tym robimy release: SLAVE START (master=00).
-func frameSetSpeedIncline(master bool, speed10 byte, incline byte) []byte {
-	m := byte(0x00)
-	if master {
-		m = 0x01
-	}
-	// ostatnie 2 bajty (00 00) zostawiamy jako "reserved".
-	return buildTxFB(0xA1, 0x02, m, speed10, incline, 0x00, 0x00)
-}
-
-// --- Notification parsing ---
-
-func parseNotify(b []byte) (Notification, bool) {
-	// Twoje notify:
-	// 7B:  FD-05-A1-01-03-AA-FE
-	// 18B: FD-10-A1-02-0A-0A-02-02-00-00-0D-00-00-00-02-00-DA-FE
-	//
-	// Mapowanie:
-	// state = b[3]
-	// speed = b[4]/10
-	// incline = b[6] (na podstawie Twoich logów przy zmianie incline)
-	//
-	// Hipotezy (do weryfikacji):
-	// timeSeconds     = uint16(b[10], b[11]) little-endian
-	// distanceUnits   = uint16(b[12], b[13])
-	// caloriesUnits   = uint16(b[14], b[15])
-	if len(b) < 6 {
-		return Notification{}, false
-	}
-	if b[0] != 0xFD || b[len(b)-1] != 0xFE {
-		return Notification{}, false
-	}
-	if b[2] != 0xA1 {
-		return Notification{}, false
-	}
-
-	n := Notification{
-		RawHex: fmtHex(b),
-		State:  int(b[3]),
-		Speed:  float64(b[4]) / 10.0,
-	}
-	if len(b) >= 7 {
-		// dla 7B to i tak działa (b[6] jest checksum, więc zostanie 0)
-	}
-	if len(b) >= 8 {
-		n.Incline = int(b[6])
-	}
-	if len(b) >= 18 {
-		n.TimeSeconds = int(uint16(b[10]) | (uint16(b[11]) << 8))
-		n.DistanceUnits = int(uint16(b[12]) | (uint16(b[13]) << 8))
-		n.CaloriesUnits = int(uint16(b[14]) | (uint16(b[15]) << 8))
-	}
-	return n, true
-}
-
-// --- BLE Connect/Send ---
-
-func (t *BleTreadmill) Connect(ctx context.Context, nameOrAddr string) error {
-	d, err := initDevice()
-	if err != nil {
-		return err
-	}
-	ble.SetDefaultDevice(d)
-
-	// nameOrAddr: jeśli wygląda jak adres macOS (hex bez :), traktujemy jako addr
-	// inaczej jako substring nazwy
-	isAddr := isProbablyMacAddr(nameOrAddr)
-
-	scanCtx, cancelScan := context.WithTimeout(ctx, 25*time.Second)
-	defer cancelScan()
-
-	var found ble.Advertisement
-	log.Println("Skanuję BLE...")
-
-	err = ble.Scan(scanCtx, false, func(a ble.Advertisement) {
-		if isAddr && strings.EqualFold(a.Addr().String(), nameOrAddr) {
-			found = a
-			cancelScan()
-			return
-		}
-		if !isAddr {
-			n := a.LocalName()
-			if n != "" && strings.Contains(strings.ToUpper(n), strings.ToUpper(nameOrAddr)) {
-				found = a
-				cancelScan()
-				return
-			}
-		}
-	}, nil)
-	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-		return fmt.Errorf("scan error: %w", err)
-	}
-	if found == nil {
-		return fmt.Errorf("nie znaleziono bieżni (nameOrAddr=%q)", nameOrAddr)
-	}
-
-	log.Printf("Znalezione: name=%q addr=%s rssi=%d", found.LocalName(), found.Addr(), found.RSSI())
-
-	connCtx, cancelConn := context.WithTimeout(ctx, 15*time.Second)
-	defer cancelConn()
-
-	cln, err := ble.Dial(connCtx, found.Addr())
-	if err != nil {
-		return fmt.Errorf("dial error: %w", err)
-	}
-
-	// Profile
-	p, err := cln.DiscoverProfile(false)
-	if err != nil {
-		cln.CancelConnection()
-		return fmt.Errorf("discover profile error: %w", err)
-	}
-
-	var chNotify *ble.Characteristic
-	var chWrite *ble.Characteristic
-	for _, s := range p.Services {
-		if uuidShort(s.UUID) != "fff0" {
-			continue
-		}
-		for _, c := range s.Characteristics {
-			switch uuidShort(c.UUID) {
-			case "fff1":
-				chNotify = c
-			case "fff2":
-				chWrite = c
-			}
-		}
-	}
-	if chNotify == nil || chWrite == nil {
-		cln.CancelConnection()
-		return fmt.Errorf("nie znaleziono FFF1/FFF2 w FFF0 (notify=%v write=%v)", chNotify != nil, chWrite != nil)
-	}
-
-	// Subscribe
-	if err := cln.Subscribe(chNotify, false, func(b []byte) {
-		if n, ok := parseNotify(b); ok {
-			t.mu.Lock()
-			t.lastNotif = n
-			t.mu.Unlock()
-
-			select {
-			case t.notifCh <- n:
-			default:
-				// nie blokuj callbacka
-			}
-		}
-	}); err != nil {
-		cln.CancelConnection()
-		return fmt.Errorf("subscribe error: %w", err)
-	}
-
-	t.mu.Lock()
-	t.cln = cln
-	t.chNotif = chNotify
-	t.chWrite = chWrite
-	t.connected = true
-	t.mu.Unlock()
-
-	log.Println("Połączono i subskrypcja NOTIFY włączona.")
-	return nil
-}
-
-func isProbablyMacAddr(s string) bool {
-	// u Ciebie: 31c1de4510f8123f337472368e4311fa (32 hex)
-	clean := strings.ToLower(strings.TrimSpace(s))
-	if len(clean) != 32 {
-		return false
-	}
-	for _, r := range clean {
-		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
-			return false
-		}
-	}
-	return true
-}
-
-func (t *BleTreadmill) writeRaw(ctx context.Context, raw []byte) error {
-	t.writeMu.Lock()
-	defer t.writeMu.Unlock()
-
-	t.mu.RLock()
-	cln := t.cln
-	ch := t.chWrite
-	t.mu.RUnlock()
-
-	if cln == nil || ch == nil {
-		return fmt.Errorf("niepołączono")
-	}
-
-	// FFF2 ma u Ciebie props=8 (Write), więc noRsp=false
-	_ = ctx // (go-ble i tak bierze context z Dial/Subscribe; tu zostawiamy na przyszłość)
-	if err := cln.WriteCharacteristic(ch, raw, false); err != nil {
-		return err
-	}
-	return nil
-}
 
 func clampSpeed(v float64) float64 {
-	if v < 0 {
-		return 0
-	}
-	if v > 22 {
-		return 22
-	}
-	// do 0.1
-	return math.Round(v*10.0) / 10.0
+	return bluetooth.ClampSpeed(v)
 }
 
 func clampIncline(v int) int {
-	if v < 0 {
-		return 0
-	}
-	if v > 22 {
-		return 22
-	}
-	return v
-}
-
-func (t *BleTreadmill) Send(ctx context.Context, cmd Command) error {
-	// Start/Stop
-	if cmd.Start {
-		raw := frameStart(true) // start, który realnie rusza
-		log.Printf("TX START (MASTER): %s", fmtHex(raw))
-		return t.writeRaw(ctx, raw)
-	}
-	if cmd.Stop {
-		raw := frameStop(true)
-		log.Printf("TX STOP (MASTER): %s", fmtHex(raw))
-		return t.writeRaw(ctx, raw)
-	}
-
-	// Speed/Incline
-	if cmd.Speed == nil && cmd.Incline == nil {
-		return nil
-	}
-
-	// jeśli nie podano jednego z parametrów, użyj aktualnego z last status (przynajmniej speed)
-	// incline: jak nie mamy, wyślemy 0 (nieidealne), ale u Ciebie i tak zwykle ustawiasz oba osobno
-	t.mu.RLock()
-	last := t.lastNotif
-	t.mu.RUnlock()
-
-	speed := last.Speed
-	incline := last.Incline
-
-	if cmd.Speed != nil {
-		speed = clampSpeed(*cmd.Speed)
-	}
-	if cmd.Incline != nil {
-		incline = clampIncline(*cmd.Incline)
-	}
-
-	speed10 := byte(math.Round(speed * 10.0))
-	incB := byte(incline)
-
-	master := cmd.Master
-	if cmd.Speed != nil || cmd.Incline != nil {
-		// na Twojej bieżni realne sterowanie działa jako MASTER
-		master = true
-	}
-
-	raw := frameSetSpeedIncline(master, speed10, incB)
-	log.Printf("TX SET (master=%v speed=%.1f incline=%d): %s", master, speed, incline, fmtHex(raw))
-
-	if err := t.writeRaw(ctx, raw); err != nil {
-		return err
-	}
-
-	// KLUCZ: oddaj kontrolę panelowi
-	if master && cmd.ReleaseAfter {
-		release := frameStart(false) // SLAVE START
-		log.Printf("TX RELEASE (SLAVE START): %s", fmtHex(release))
-		_ = t.writeRaw(ctx, release) // jeśli release nie wyjdzie – i tak komenda się wykonała
-	}
-
-	return nil
+	return bluetooth.ClampIncline(v)
 }
 
 // --- HTTP panel (opcjonalny) ---
 
 type panelServer struct {
-	tm *BleTreadmill
+	tm *bluetooth.BleTreadmill
 
 	wmu    sync.Mutex
 	status WorkoutStatus
@@ -967,7 +510,7 @@ func (p *panelServer) routes() http.Handler {
 			http.Error(w, "POST only", http.StatusMethodNotAllowed)
 			return
 		}
-		_ = p.tm.Send(r.Context(), Command{Start: true})
+		_ = p.tm.Send(r.Context(), bluetooth.Command{Start: true})
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -976,7 +519,7 @@ func (p *panelServer) routes() http.Handler {
 			http.Error(w, "POST only", http.StatusMethodNotAllowed)
 			return
 		}
-		_ = p.tm.Send(r.Context(), Command{Stop: true})
+		_ = p.tm.Send(r.Context(), bluetooth.Command{Stop: true})
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -991,7 +534,7 @@ func (p *panelServer) routes() http.Handler {
 			http.Error(w, "bad value", http.StatusBadRequest)
 			return
 		}
-		_ = p.tm.Send(r.Context(), Command{Speed: &f, ReleaseAfter: true})
+		_ = p.tm.Send(r.Context(), bluetooth.Command{Speed: &f, ReleaseAfter: true})
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -1006,7 +549,7 @@ func (p *panelServer) routes() http.Handler {
 			http.Error(w, "bad value", http.StatusBadRequest)
 			return
 		}
-		_ = p.tm.Send(r.Context(), Command{Incline: &i, ReleaseAfter: true})
+		_ = p.tm.Send(r.Context(), bluetooth.Command{Incline: &i, ReleaseAfter: true})
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -1254,7 +797,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	tm := NewBleTreadmill()
+	tm := bluetooth.NewBleTreadmill()
 	if err := tm.Connect(ctx, target); err != nil {
 		log.Fatalf("Connect error: %v", err)
 	}
@@ -1262,30 +805,30 @@ func main() {
 
 	// jeśli user podał -send -> wyślij raw
 	if *sendHex != "" {
-		raw, err := decodeHex(*sendHex)
+		raw, err := bluetooth.DecodeHex(*sendHex)
 		if err != nil {
 			log.Fatalf("decode send hex error: %v", err)
 		}
-		log.Printf("TX RAW: %s", fmtHex(raw))
-		if err := tm.writeRaw(ctx, raw); err != nil {
+		log.Printf("TX RAW: %s", bluetooth.FormatHex(raw))
+		if err := tm.SendRaw(ctx, raw); err != nil {
 			log.Fatalf("write error: %v", err)
 		}
 	}
 
 	// komendy z flag
 	if *start {
-		_ = tm.Send(ctx, Command{Start: true})
+		_ = tm.Send(ctx, bluetooth.Command{Start: true})
 	}
 	if *stop {
-		_ = tm.Send(ctx, Command{Stop: true})
+		_ = tm.Send(ctx, bluetooth.Command{Stop: true})
 	}
 	if *speed >= 0 {
 		v := *speed
-		_ = tm.Send(ctx, Command{Speed: &v, ReleaseAfter: *release})
+		_ = tm.Send(ctx, bluetooth.Command{Speed: &v, ReleaseAfter: *release})
 	}
 	if *incline >= 0 {
 		v := *incline
-		_ = tm.Send(ctx, Command{Incline: &v, ReleaseAfter: *release})
+		_ = tm.Send(ctx, bluetooth.Command{Incline: &v, ReleaseAfter: *release})
 	}
 
 	// panel
@@ -1412,7 +955,7 @@ func (p *panelServer) StartWorkout(ctx context.Context) error {
 
 func (p *panelServer) runWorkoutWithAutoStart(ctx context.Context) {
 	// 1️⃣ MASTER START
-	_ = p.tm.Send(ctx, Command{Start: true})
+	_ = p.tm.Send(ctx, bluetooth.Command{Start: true})
 	log.Println("Workout: START sent")
 
 	// 2️⃣ czekamy aż bieżnia faktycznie ruszy
@@ -1428,7 +971,7 @@ func (p *panelServer) runWorkoutWithAutoStart(ctx context.Context) {
 	p.runWorkout(ctx)
 
 	// 5️⃣ po zakończeniu → STOP
-	_ = p.tm.Send(context.Background(), Command{Stop: true})
+	_ = p.tm.Send(context.Background(), bluetooth.Command{Stop: true})
 	log.Println("Workout: STOP sent")
 }
 
@@ -1457,7 +1000,7 @@ func (p *panelServer) runWorkout(ctx context.Context) {
 	// helper: wyślij ustawienia kroku
 	applyStep := func(step WorkoutStep) {
 		s := clampSpeed(step.Speed)
-		cmd := Command{
+		cmd := bluetooth.Command{
 			Speed:        &s,
 			ReleaseAfter: true, // to jest to, co Ci robi “nie blokuj panelu”
 		}
