@@ -183,6 +183,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
+          # Only the package jobs, not the coverage report.
+          pattern: panel-*
           path: dist
           merge-multiple: true
       - run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
