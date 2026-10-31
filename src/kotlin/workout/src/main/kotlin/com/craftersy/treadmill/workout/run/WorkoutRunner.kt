@@ -16,6 +16,7 @@ import com.craftersy.treadmill.workout.format.expand
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -139,9 +140,11 @@ class WorkoutRunner(
     fun stop() {
         val s = mutableState.value
         if (s.finished || s.phase == Phase.STOPPING) return
-        job?.cancel()
+        mutableState.update { it.copy(phase = Phase.STOPPING, message = listOf(Msg.StoppingBelt), messageIsError = false) }
         scope.launch {
-            mutableState.update { it.copy(phase = Phase.STOPPING, message = listOf(Msg.StoppingBelt), messageIsError = false) }
+            // Wait for the run to end first: otherwise it could still see the belt braking from our own Stop
+            // and end the workout as if the belt had been stopped on the console.
+            job?.cancelAndJoin()
             val outcome = stopBelt()
             end(outcome.ifEmpty { listOf(Msg.WorkoutStopped) }, Msg.CouldNotStop in outcome)
         }
