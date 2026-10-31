@@ -12,6 +12,9 @@ protocol specification (`docs/protocol.md`) and implementations in several langu
 - Namespace for module paths and identifiers: `craftersy.com` (Go module `craftersy.com/treadmill/src/go/lib`).
 - Every command lives in the root `Taskfile.yml` (`task --list`). Run `task go:check` before committing, and
   `task kotlin:check` when `src/kotlin` changed (`task kotlin:setup` installs JDK 21 and the Android SDK).
+- `main` is protected: every change goes through a pull request with green CI. Each push to `main` publishes a
+  `panel-v0.1.<run>` release with the Go panel binaries and the signed APK (see the release jobs in
+  `.github/workflows/ci.yml`). The APK signing key lives in repository secrets; never commit a keystore.
 - `docs/protocol.md` is the source of truth. A protocol change needs evidence (log lines, photos) and a test
   with a captured frame.
 

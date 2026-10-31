@@ -150,6 +150,16 @@ tasks:
       - git tag -a {{.GO_LIB}}/{{.VERSION}} -m "Go library {{.VERSION}}"
       - echo "Tagged {{.GO_LIB}}/{{.VERSION}}. Push with - git push origin {{.GO_LIB}}/{{.VERSION}}"
 
+  go:package:
+    desc: 'Build a release binary of the terminal panel into dist/ (GOOS, GOARCH, VERSION; macOS needs cgo, so build darwin on a Mac)'
+    vars:
+      GOOS: '{{.GOOS | default OS}}'
+      GOARCH: '{{.GOARCH | default ARCH}}'
+      VERSION: '{{.VERSION | default "dev"}}'
+    cmds:
+      - mkdir -p dist
+      - cd {{.GO_PANEL}} && CGO_ENABLED={{if eq .GOOS "darwin"}}1{{else}}0{{end}} GOOS={{.GOOS}} GOARCH={{.GOARCH}} go build -trimpath -ldflags "-s -w -X main.version={{.VERSION}}" -o "{{.ROOT_DIR}}/dist/treadmill-panel_{{.VERSION}}_{{.GOOS}}_{{.GOARCH}}" .
+
   # ── Kotlin: Android ──────────────────────────────────────────────────────
   # JAVA_HOME and ANDROID_HOME default to the Homebrew installs made by
   # kotlin:setup; set them to use other ones.
@@ -195,6 +205,18 @@ tasks:
     env: *android-env
     cmds:
       - ./gradlew :lib:test :panel:testDebugUnitTest :panel:lintDebug :lib:assemble :panel:assembleDebug
+
+  kotlin:release:
+    desc: 'Build the release APK into dist/ (VERSION, VERSION_CODE); signed when ANDROID_KEYSTORE_FILE, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD are set'
+    dir: '{{.KOTLIN}}'
+    env: *android-env
+    vars:
+      VERSION: '{{.VERSION | default "0.1.0"}}'
+      VERSION_CODE: '{{.VERSION_CODE | default "1"}}'
+    cmds:
+      - ./gradlew :panel:assembleRelease -PversionName={{.VERSION}} -PversionCode={{.VERSION_CODE}}
+      - mkdir -p "{{.ROOT_DIR}}/dist"
+      - cp panel/build/outputs/apk/release/panel-release*.apk "{{.ROOT_DIR}}/dist/treadmill-panel_{{.VERSION}}.apk"
 
   kotlin:install:
     desc: 'Install the debug APK on the phone connected over USB or Wi-Fi debugging (adb devices)'

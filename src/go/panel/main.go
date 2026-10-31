@@ -22,12 +22,20 @@ import (
 	"craftersy.com/treadmill/src/go/lib/treadmilltest"
 )
 
+// version is set by release builds with -ldflags "-X main.version=…".
+var version = "dev"
+
 func main() {
+	showVersion := flag.Bool("version", false, "print the version and exit")
 	sim := flag.Bool("sim", false, "use the built-in simulator instead of Bluetooth")
 	tick := flag.Duration("tick", 1290*time.Millisecond, "status interval of the simulator")
 	name := flag.String("name", protocol.DeviceName, "advertised name of the treadmill")
 	address := flag.String("address", "", "device address; takes precedence over -name")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println("panel", version)
+		return
+	}
 
 	device, connect := *name, bluetoothConnector(bluetooth.Options{Name: *name, Address: *address})
 	if *sim {
