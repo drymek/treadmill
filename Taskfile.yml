@@ -161,7 +161,7 @@ tasks:
       - brew install openjdk@21
       - brew install --cask android-commandlinetools
       - sdkmanager --licenses
-      - sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - sdkmanager "platform-tools" "platforms;android-37.0" "build-tools;36.0.0"
     env: &android-env
       JAVA_HOME:
         sh: echo "${JAVA_HOME:-$( (/usr/libexec/java_home -v 21 || echo "$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home") 2>/dev/null )}"
