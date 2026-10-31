@@ -19,6 +19,7 @@ protocol specification (`docs/protocol.md`) and implementations in several langu
 | Path | What |
 |---|---|
 | `src/go/lib` | Go library: `protocol` (pure framing), `treadmill` (client, acknowledged commands, `DialReconnecting`), `bluetooth` (BLE transport), `treadmilltest` (simulator), `e2e` (hardware tests, `e2e` build tag) |
+| `src/go/panel` | terminal app (Bubble Tea v2, Lip Gloss v2), a virtual HMS console; separate module, `-sim` for the simulator |
 | `src/go/tools/probe` | research tool, separate module; logs every notification and sends any command |
 | `docs/measurements` | raw session log and photos backing the specification |
 

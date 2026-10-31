@@ -5,7 +5,8 @@ version: '3'
 vars:
   GO_LIB: src/go/lib
   GO_TOOLS: src/go/tools
-  GO_MODULES: [src/go/lib, src/go/tools]
+  GO_PANEL: src/go/panel
+  GO_MODULES: [src/go/lib, src/go/tools, src/go/panel]
   TREADMILL_NAME: '{{.TREADMILL_NAME | default "RZ_TreadMil"}}'
   CAMERA: '{{.CAMERA | default "0"}}'
 
@@ -61,6 +62,7 @@ tasks:
     cmds:
       - cd {{.GO_LIB}} && go build ./... && GOOS=linux go build ./...
       - cd {{.GO_TOOLS}} && go build -o "$(mktemp -d)" ./... && GOOS=linux go build -o "$(mktemp -d)" ./...
+      - cd {{.GO_PANEL}} && go build -o "$(mktemp -d)" ./... && GOOS=linux go build -o "$(mktemp -d)" ./...
 
   go:test:
     desc: Run unit and simulator tests (no hardware)
@@ -145,6 +147,22 @@ tasks:
       - task: go:check
       - git tag -a {{.GO_LIB}}/{{.VERSION}} -m "Go library {{.VERSION}}"
       - echo "Tagged {{.GO_LIB}}/{{.VERSION}}. Push with - git push origin {{.GO_LIB}}/{{.VERSION}}"
+
+  # ── Apps ─────────────────────────────────────────────────────────────────
+
+  panel:
+    desc: Virtual HMS console in the terminal, connected over Bluetooth
+    dir: '{{.GO_PANEL}}'
+    interactive: true
+    cmds:
+      - go run . -name {{.TREADMILL_NAME}} {{.CLI_ARGS}}
+
+  panel:sim:
+    desc: Virtual HMS console against the built-in simulator (no hardware)
+    dir: '{{.GO_PANEL}}'
+    interactive: true
+    cmds:
+      - go run . -sim {{.CLI_ARGS}}
 
   # ── Protocol research ────────────────────────────────────────────────────
 
