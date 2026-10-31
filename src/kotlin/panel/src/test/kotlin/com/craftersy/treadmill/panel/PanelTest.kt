@@ -58,7 +58,8 @@ class PanelTest {
         return Harness(panel, sim, events)
     }
 
-    private suspend fun PanelController.on(block: PanelController.() -> Unit) = withContext(main.coroutineContext) { block() }
+    /** Runs [block] on the panel's main thread, so queued commands cannot run in between. */
+    private suspend fun <T> PanelController.on(block: PanelController.() -> T): T = withContext(main.coroutineContext) { block() }
 
     private suspend fun PanelController.until(cond: (PanelState) -> Boolean): PanelState = state.first(cond)
 
@@ -134,9 +135,10 @@ class PanelTest {
     fun quitStopsTheBeltFirst() = test {
         val h = harness()
         h.running()
-        h.panel.on { quit() }
-        assertTrue(h.panel.state.value.quitting)
-        assertFalse(h.panel.state.value.finished)
+        // Read the state before the queued STOP can run: the simulator confirms it at once.
+        val asked = h.panel.on { quit(); state.value }
+        assertTrue(asked.quitting)
+        assertFalse(asked.finished)
         h.panel.until { it.finished }
         assertEquals(Command.stop().toHex(), h.sim.writes().last().toHex())
     }

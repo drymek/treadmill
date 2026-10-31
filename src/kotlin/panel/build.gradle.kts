@@ -1,13 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.craftersy.treadmill.panel"
-    compileSdk = 35
-    buildToolsVersion = "35.0.0"
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.craftersy.treadmill.panel"
@@ -28,10 +26,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
     }
@@ -40,6 +34,10 @@ android {
         warningsAsErrors = false
         abortOnError = true
     }
+}
+
+kotlin {
+    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
 }
 
 dependencies {
@@ -55,6 +53,6 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     debugImplementation(libs.compose.ui.tooling)
 
-    testImplementation(kotlin("test"))
+    testImplementation(kotlin("test-junit")) // built-in Kotlin does not pick the JUnit variant of kotlin("test")
     testImplementation(libs.junit)
 }
