@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Panel" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/console</item>
+        <item name="android:statusBarColor">@color/console</item>
+        <item name="android:navigationBarColor">@color/console</item>
+    </style>
+    <color name="console">#FF0B0B0C</color>
+</resources>

@@ -3,25 +3,7 @@
 A virtual HMS console in your terminal. It shows what the treadmill's own display shows, all at once instead of
 cycling through screens, and its keys work like the console buttons.
 
-```
- HMS  ·  RZ_TreadMil                                        ● connected
-╭────────────────────────────────────────────────────────────────────╮
-│        INCLINE             SPEED  km/h              PULSE          │
-│           _                   _   _                      _         │
-│           _|                 |_  |_                 |  | _|        │
-│           _|                  _|. _|                |  ||_         │
-│                           belt 4.8 km/h                            │
-│                                                                    │
-│          TIME              DISTANCE  km            CALORIES        │
-│         _   _                       _              _  _            │
-│       | _|. _||_|             |   | _|            |_ |_| |_|       │
-│       ||_ . _|  |             |.  ||_             |_||_|.  |       │
-│                                                                    │
-│                             ● RUNNING                              │
-╰────────────────────────────────────────────────────────────────────╯
- [enter] START  [space] STOP  [m] −  [p] +  [3 6 9 0] 3 6 9 12 km/h
- [↓] ▽  [↑] △  [a s d f] incline 3 6 9 12  [?] help  [q] quit
-```
+![The panel with the belt running at 5.0 km/h, incline 3, pulse 112](screenshots/panel.png)
 
 Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea) and
 [Lip Gloss](https://github.com/charmbracelet/lipgloss) on top of the [Go library](../lib).

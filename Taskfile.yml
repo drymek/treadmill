@@ -6,6 +6,8 @@ vars:
   GO_LIB: src/go/lib
   GO_TOOLS: src/go/tools
   GO_PANEL: src/go/panel
+  KOTLIN: src/kotlin
+  ANDROID_PACKAGE: com.craftersy.treadmill.panel
   GO_MODULES: [src/go/lib, src/go/tools, src/go/panel]
   TREADMILL_NAME: '{{.TREADMILL_NAME | default "RZ_TreadMil"}}'
   CAMERA: '{{.CAMERA | default "0"}}'
@@ -148,6 +150,59 @@ tasks:
       - git tag -a {{.GO_LIB}}/{{.VERSION}} -m "Go library {{.VERSION}}"
       - echo "Tagged {{.GO_LIB}}/{{.VERSION}}. Push with - git push origin {{.GO_LIB}}/{{.VERSION}}"
 
+  # ── Kotlin: Android ──────────────────────────────────────────────────────
+  # JAVA_HOME and ANDROID_HOME default to the Homebrew installs made by
+  # kotlin:setup; set them to use other ones.
+
+  kotlin:setup:
+    desc: 'Install JDK 21 and the Android SDK with Homebrew (macOS); asks you to accept the SDK licenses'
+    interactive: true
+    cmds:
+      - brew install openjdk@21
+      - brew install --cask android-commandlinetools
+      - sdkmanager --licenses
+      - sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+    env: &android-env
+      JAVA_HOME:
+        sh: echo "${JAVA_HOME:-$( (/usr/libexec/java_home -v 21 || echo "$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home") 2>/dev/null )}"
+      ANDROID_HOME:
+        sh: echo "${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
+
+  kotlin:test:
+    desc: Run Kotlin library and app unit tests (no hardware, no phone)
+    dir: '{{.KOTLIN}}'
+    env: *android-env
+    cmds:
+      - ./gradlew :lib:test :panel:testDebugUnitTest {{.CLI_ARGS}}
+
+  kotlin:lint:
+    desc: Run Android lint on the app
+    dir: '{{.KOTLIN}}'
+    env: *android-env
+    cmds:
+      - ./gradlew :panel:lintDebug
+
+  kotlin:build:
+    desc: Build the library and the debug APK (src/kotlin/panel/build/outputs/apk/debug/panel-debug.apk)
+    dir: '{{.KOTLIN}}'
+    env: *android-env
+    cmds:
+      - ./gradlew :lib:assemble :panel:assembleDebug
+
+  kotlin:check:
+    desc: Everything CI runs for Kotlin - unit tests, lint, build
+    dir: '{{.KOTLIN}}'
+    env: *android-env
+    cmds:
+      - ./gradlew :lib:test :panel:testDebugUnitTest :panel:lintDebug :lib:assemble :panel:assembleDebug
+
+  kotlin:install:
+    desc: 'Install the debug APK on the phone connected over USB or Wi-Fi debugging (adb devices)'
+    dir: '{{.KOTLIN}}'
+    env: *android-env
+    cmds:
+      - ./gradlew :panel:installDebug
+
   # ── Apps ─────────────────────────────────────────────────────────────────
 
   panel:
@@ -163,6 +218,13 @@ tasks:
     interactive: true
     cmds:
       - go run . -sim {{.CLI_ARGS}}
+
+  panel:android:
+    desc: Install the Android console on the connected phone and open it
+    env: *android-env
+    cmds:
+      - task: kotlin:install
+      - '"$ANDROID_HOME/platform-tools/adb" shell am start -n {{.ANDROID_PACKAGE}}/.MainActivity'
 
   # ── Protocol research ────────────────────────────────────────────────────
 

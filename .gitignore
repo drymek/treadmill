@@ -4,3 +4,7 @@ coverage.out
 coverage.html
 .DS_Store
 .idea/
+.gradle/
+.kotlin/
+build/
+local.properties

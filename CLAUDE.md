@@ -10,7 +10,8 @@ protocol specification (`docs/protocol.md`) and implementations in several langu
 
 - Everything in the repository is written in English: code, comments, docs, commit messages.
 - Namespace for module paths and identifiers: `craftersy.com` (Go module `craftersy.com/treadmill/src/go/lib`).
-- Every command lives in the root `Taskfile.yml` (`task --list`). Run `task go:check` before committing.
+- Every command lives in the root `Taskfile.yml` (`task --list`). Run `task go:check` before committing, and
+  `task kotlin:check` when `src/kotlin` changed (`task kotlin:setup` installs JDK 21 and the Android SDK).
 - `docs/protocol.md` is the source of truth. A protocol change needs evidence (log lines, photos) and a test
   with a captured frame.
 
@@ -21,9 +22,12 @@ protocol specification (`docs/protocol.md`) and implementations in several langu
 | `src/go/lib` | Go library: `protocol` (pure framing), `treadmill` (client, acknowledged commands, `DialReconnecting`), `bluetooth` (BLE transport), `treadmilltest` (simulator), `e2e` (hardware tests, `e2e` build tag) |
 | `src/go/panel` | terminal app (Bubble Tea v2, Lip Gloss v2), a virtual HMS console; separate module, `-sim` for the simulator |
 | `src/go/tools/probe` | research tool, separate module; logs every notification and sends any command |
+| `src/kotlin/lib` | Kotlin/JVM library (package `com.craftersy.treadmill`): `protocol`, `client` (acknowledged commands, `ReconnectingTransport`), `simulator`; no Android dependency |
+| `src/kotlin/panel` | Android app (Jetpack Compose, minSdk 31), the virtual HMS console; BLE transport in `panel/bluetooth`. One Gradle build in `src/kotlin` |
 | `docs/measurements` | raw session log and photos backing the specification |
 
-Record user-visible library changes in `src/go/lib/CHANGELOG.md` under **Unreleased**.
+Record user-visible library changes in `src/go/lib/CHANGELOG.md` and `src/kotlin/lib/CHANGELOG.md` under
+**Unreleased**. Keep the Go and Kotlin panels feature-equal.
 
 ## Safety
 
