@@ -23,6 +23,18 @@ is backed by a log line and a photo, and the raw data is part of the repository.
 
 New implementations go to `src/<language>/lib` for libraries and `src/<language>/<app>` for applications.
 
+## Download
+
+Every change merged into `main` that passes CI is published as a
+[GitHub release](https://github.com/drymek/treadmill/releases) named `panel-v0.1.<build>`:
+
+- `treadmill-panel_<version>_<os>_<arch>`: the terminal panel for macOS (`darwin`) and Linux, on `arm64` and
+  `amd64`. The macOS binaries are not notarized; after downloading run
+  `chmod +x <file> && xattr -d com.apple.quarantine <file>`.
+- `treadmill-panel_<version>.apk`: the Android panel. Every release is signed with the same key, so it installs
+  over the previous one.
+- `SHA256SUMS`: checksums of all files.
+
 ## Protocol
 
 [`docs/protocol.md`](docs/protocol.md) is the specification. In short: GATT service `FFF0`, commands written to

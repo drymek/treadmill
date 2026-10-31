@@ -3,6 +3,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Release builds are signed only when ANDROID_KEYSTORE_FILE is set (CI reads it from repository secrets);
+// without it assembleRelease produces an unsigned APK.
+val releaseKeystore: String? = System.getenv("ANDROID_KEYSTORE_FILE")
+
 android {
     namespace = "com.craftersy.treadmill.panel"
     compileSdk = 37
@@ -11,13 +15,26 @@ android {
         applicationId = "com.craftersy.treadmill.panel"
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // CI passes -PversionCode=<run number> -PversionName=<release version>.
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("versionName").orNull ?: "0.1.0"
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
