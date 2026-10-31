@@ -1,0 +1,27 @@
+version: 1
+name: Hill walk
+description: A brisk walk over three rolling hills
+steps:
+  - name: Flat
+    duration: 5m
+    speed: 5 km/h
+    incline: 0
+  - repeat: 3
+    steps:
+      - name: Climb
+        duration: 4m
+        speed: 5.5 km/h
+        incline: 8
+        note: Short steps, tall posture
+      - name: Summit
+        duration: 2m
+        speed: 5 km/h
+        incline: 12
+      - name: Descent
+        duration: 3m
+        speed: 6 km/h
+        incline: 2
+  - name: Flat
+    duration: 5m
+    speed: 4.5 km/h
+    incline: 0

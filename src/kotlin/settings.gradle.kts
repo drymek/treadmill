@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "treadmill"
-include(":lib", ":panel")
+include(":lib", ":panel", ":workout")

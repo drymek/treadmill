@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Library -->
+    <string name="library_title">Twoje plany</string>
+    <string name="library_empty_subtitle">Zaprojektuj trening i uruchom go na bieżni.</string>
+    <plurals name="library_summary">
+        <item quantity="one">%1$d trening · %2$d min biegu</item>
+        <item quantity="few">%1$d treningi · %2$d min biegu</item>
+        <item quantity="many">%1$d treningów · %2$d min biegu</item>
+        <item quantity="other">%1$d treningu · %2$d min biegu</item>
+    </plurals>
+    <string name="new_workout">Nowy trening</string>
+    <string name="import_action">Importuj</string>
+    <string name="settings">Ustawienia</string>
+    <string name="simulator">Symulator</string>
+    <string name="run">Start</string>
+    <string name="simulate">Symuluj</string>
+    <string name="share">Udostępnij</string>
+    <string name="more">Więcej</string>
+    <string name="edit">Edytuj</string>
+    <string name="duplicate">Duplikuj</string>
+    <string name="view_yaml">Pokaż YAML</string>
+    <string name="copy_yaml">Kopiuj YAML</string>
+    <string name="delete">Usuń</string>
+    <string name="delete_title">Usunąć %1$s?</string>
+    <string name="delete_text">Plik treningu zostanie usunięty z telefonu.</string>
+    <string name="keep">Zostaw</string>
+    <plurals name="steps_count">
+        <item quantity="one">%d krok</item>
+        <item quantity="few">%d kroki</item>
+        <item quantity="many">%d kroków</item>
+        <item quantity="other">%d kroku</item>
+    </plurals>
+    <string name="empty_title">Zaplanuj każdy krok</string>
+    <string name="empty_text">Ustaw tempo lub prędkość, wznos oraz czas lub dystans każdego kroku, dodaj powtórzenia na interwały, a aplikacja poprowadzi bieżnię za Ciebie, nawet przy wyłączonym ekranie.</string>
+    <string name="design_workout">Zaprojektuj trening</string>
+    <string name="samples">Przykłady</string>
+    <string name="add_title">Dodaj trening</string>
+    <string name="add_text">Działa każdy plik .workout.yaml; przed dodaniem zostanie sprawdzony.</string>
+    <string name="paste_clipboard">Wklej ze schowka</string>
+    <string name="paste_clipboard_hint">YAML skopiowany z wiadomości lub notatki</string>
+    <string name="import_url">Importuj z URL</string>
+    <string name="import_url_hint">Link do pliku .workout.yaml</string>
+    <string name="open_file">Otwórz plik</string>
+    <string name="open_file_hint">Z pobranych plików lub chmury</string>
+    <string name="cancel">Anuluj</string>
+    <string name="copy">Kopiuj</string>
+    <string name="close">Zamknij</string>
+    <string name="ok">OK</string>
+    <string name="line_n">Linia %d</string>
+    <string name="import_failed">Nie udało się zaimportować z: %1$s</string>
+    <string name="source_clipboard">schowek</string>
+    <string name="source_url">URL</string>
+    <string name="source_file">plik</string>
+    <string name="source_shared">udostępniony tekst</string>
+
+    <!-- Messages -->
+    <string name="msg_saved">Zapisano: %1$s</string>
+    <string name="msg_save_failed">Nie udało się zapisać.</string>
+    <string name="msg_deleted">Usunięto: %1$s</string>
+    <string name="msg_duplicated">Zduplikowano: %1$s</string>
+    <string name="copy_suffix">%1$s (kopia)</string>
+    <string name="msg_imported">Zaimportowano: %1$s</string>
+    <string name="msg_empty">Pusto: %1$s.</string>
+    <string name="msg_not_yaml">%1$s nie jest plikiem treningu. Pliki treningów kończą się na .workout.yaml.</string>
+    <string name="msg_open_failed">Nie udało się otworzyć pliku.</string>
+    <string name="share_title">Udostępnij: %1$s</string>
+
+    <!-- New workout -->
+    <string name="default_warmup">Rozgrzewka</string>
+    <string name="default_run">Bieg</string>
+    <string name="default_cooldown">Schłodzenie</string>
+    <string name="default_fast">Szybko</string>
+    <string name="default_recover">Odpoczynek</string>
+
+    <!-- Settings -->
+    <string name="treadmill">Bieżnia</string>
+    <string name="bluetooth_name">Nazwa Bluetooth</string>
+    <string name="bluetooth_name_hint">Część nazwy, którą rozgłasza bieżnia. Najczęściej %1$s.</string>
+    <string name="reset">Przywróć</string>
+    <string name="testing">Testowanie</string>
+    <string name="simulator_hint">Uruchamiaj treningi na wbudowanym symulatorze zamiast na bieżni. Nic się nie rusza.</string>
+    <string name="scan_action">Szukaj urządzeń w pobliżu</string>
+    <string name="scan_title">Urządzenia w pobliżu</string>
+    <string name="scan_searching">Szukam… Bieżnia pojawia się tylko wtedy, gdy jest włączona i niepołączona z innym urządzeniem.</string>
+    <string name="scan_none">Nie znaleziono urządzeń. Czy bieżnia jest włączona, blisko i niepołączona z innym urządzeniem?</string>
+    <string name="scan_again">Szukaj ponownie</string>
+    <string name="scan_bluetooth_off">Bluetooth jest wyłączony. Włącz go i wyszukaj ponownie.</string>
+    <string name="scan_permission">Do wyszukiwania aplikacja potrzebuje uprawnienia Urządzenia w pobliżu.</string>
+    <string name="scan_allow">Zezwól</string>
+    <string name="scan_treadmill">Wygląda na bieżnię</string>
+    <string name="language">Język</string>
+    <string name="language_system">Systemowy</string>
+
+    <!-- Editor -->
+    <string name="back">Wstecz</string>
+    <string name="edit_workout">Edytuj trening</string>
+    <string name="save">Zapisz</string>
+    <string name="tab_design">Projekt</string>
+    <string name="tab_yaml">YAML</string>
+    <string name="steps">Kroki</string>
+    <string name="move_up">W górę</string>
+    <string name="move_down">W dół</string>
+    <string name="up">W górę</string>
+    <string name="down">W dół</string>
+    <string name="repeat">Powtórz</string>
+    <string name="unwrap">Rozpakuj</string>
+    <string name="add_step">Dodaj krok</string>
+    <string name="add_repeat">Dodaj powtórzenie</string>
+    <string name="workout_name">Nazwa treningu</string>
+    <string name="add_description">Dodaj opis</string>
+    <string name="profile_empty">Dodaj krok, żeby zobaczyć profil treningu.</string>
+    <string name="time">Czas</string>
+    <string name="distance">Dystans</string>
+    <string name="fix_before_saving">Popraw przed zapisaniem</string>
+    <string name="unnamed_step">Krok bez nazwy</string>
+    <string name="step_n">Krok %d</string>
+    <string name="name">Nazwa</string>
+    <string name="note_on_screen">Notatka na ekranie</string>
+    <plurals name="steps_per_round">
+        <item quantity="one">%d krok w rundzie</item>
+        <item quantity="few">%d kroki w rundzie</item>
+        <item quantity="many">%d kroków w rundzie</item>
+        <item quantity="other">%d kroku w rundzie</item>
+    </plurals>
+    <string name="block_actions">Akcje bloku</string>
+    <string name="add_step_to_block">Dodaj krok do bloku</string>
+    <string name="length">Długość</string>
+    <string name="unit_hms">h:mm:ss</string>
+    <string name="unit_ms">min:s</string>
+    <string name="unit_metres">metrów</string>
+    <string name="multiple_of_10">Użyj wielokrotności 10 m</string>
+    <string name="target">Cel</string>
+    <string name="pace">Tempo</string>
+    <string name="speed">Prędkość</string>
+    <string name="runs_at">Bieżnia: %1$s</string>
+    <string name="runs_at_actually">Bieżnia: %1$s · faktycznie %2$s/km</string>
+    <string name="outside_range">Poza zakresem bieżni %1$s–%2$s</string>
+    <string name="pace_is">Tempo %1$s/km</string>
+    <string name="incline">Wznos</string>
+    <string name="incline_keeps">Zostaje poprzedni poziom (%d)</string>
+    <string name="incline_level">Poziom %d</string>
+    <string name="incline_set">Ustaw</string>
+    <string name="incline_short">wznos %d</string>
+    <string name="incline_inherited_short">wznos %d ↺</string>
+    <string name="less">Mniej</string>
+
+    <!-- Validation -->
+    <string name="issue_name_missing">Trening potrzebuje nazwy</string>
+    <string name="issue_no_steps">Dodaj co najmniej jeden krok</string>
+    <string name="issue_repeat_too_few">Liczba powtórzeń musi wynosić co najmniej 2, jest %d</string>
+    <string name="issue_repeat_empty">Blok powtórzeń nie ma kroków</string>
+    <string name="issue_duration_zero">Czas musi być dłuższy niż zero</string>
+    <string name="issue_distance_zero">Dystans musi być dłuższy niż zero</string>
+    <string name="issue_distance_not_10">Dystans musi być wielokrotnością 10 m</string>
+    <string name="issue_pace_range">Tempo %1$s/km to %2$s, poza zakresem bieżni %3$s–%4$s</string>
+    <string name="issue_speed_range">Prędkość %1$s jest poza zakresem bieżni %2$s–%3$s</string>
+    <string name="issue_incline_range">Wznos %d jest poza zakresem 0–22</string>
+
+    <!-- Run -->
+    <string name="now_running">TRWA TRENING</string>
+    <string name="summary">PODSUMOWANIE</string>
+    <string name="connected">Połączono</string>
+    <string name="connecting">Łączenie</string>
+    <string name="disconnected">Rozłączono</string>
+    <string name="get_ready">Przygotuj się</string>
+    <string name="belt_starts">Pas zaraz ruszy</string>
+    <string name="first_up">Na start</string>
+    <string name="up_next">Następny</string>
+    <string name="remaining">zostało</string>
+    <string name="metres_to_go">metrów do końca</string>
+    <string name="round_n">runda %1$d/%2$d</string>
+    <string name="belt">Pas</string>
+    <string name="heart">Tętno</string>
+    <string name="last_step">Ostatni krok. Pas zatrzyma się, gdy się skończy.</string>
+    <string name="workout_complete">Trening ukończony</string>
+    <string name="workout_ended">Trening zakończony</string>
+    <string name="kcal">kcal</string>
+    <string name="done">Gotowe</string>
+    <string name="step_of">Krok %1$d z %2$d</string>
+    <string name="skip_step">Pomiń krok</string>
+    <string name="stop">Stop</string>
+    <string name="stopping">Zatrzymywanie…</string>
+    <string name="end_title">Zakończyć trening?</string>
+    <string name="end_text">Pas się zatrzyma, a trening zakończy. Nie da się go wznowić.</string>
+    <string name="stop_belt">Zatrzymaj pas</string>
+    <string name="keep_running">Biegnę dalej</string>
+
+    <!-- Run messages -->
+    <string name="m_searching">Szukam bieżni…</string>
+    <string name="m_connected">Połączono.</string>
+    <string name="m_get_ready">Przygotuj się…</string>
+    <string name="m_cooling_down">Zatrzymuję pas…</string>
+    <string name="m_complete">Trening ukończony. Brawo!</string>
+    <string name="m_stopping_belt">Zatrzymuję pas…</string>
+    <string name="m_workout_stopped">Trening przerwany.</string>
+    <string name="m_belt_stopped">Pas zatrzymany.</string>
+    <string name="m_could_not_stop">Nie udało się zatrzymać pasa. Zatrzymaj go na konsoli lub wyciągnij klucz bezpieczeństwa!</string>
+    <string name="m_belt_stopped_console">Pas zatrzymano na konsoli. Trening zakończony.</string>
+    <string name="m_connection_closed">Połączenie zamknięte. Sprawdź bieżnię!</string>
+    <string name="m_connection_lost">Utracono połączenie. Pas dalej jedzie; aplikacja zatrzyma go, gdy tylko połączy się ponownie. Zatrzymaj go na konsoli lub wyciągnij klucz bezpieczeństwa!</string>
+    <string name="m_reconnected">Połączono ponownie.</string>
+    <string name="m_no_answer">Bieżnia nie odpowiedziała na czas.</string>
+    <string name="m_no_status">Bieżnia nie wysyła stanu.</string>
+    <string name="m_not_running">Pas nie jedzie.</string>
+    <string name="m_not_connected">Brak połączenia.</string>
+    <string name="m_not_confirmed">Bieżnia nie potwierdziła polecenia.</string>
+    <string name="m_could_not_connect">Nie udało się połączyć.</string>
+    <string name="m_not_found">Nie znaleziono bieżni „%1$s”. Czy jest włączona, blisko i niepołączona z innym urządzeniem?</string>
+
+    <!-- Notification -->
+    <string name="n_connecting">Łączenie…</string>
+    <string name="n_target">%1$s/km · %2$s · wznos %3$d</string>
+    <string name="n_next">Następny: %1$s, %2$s/km</string>
+    <string name="n_last">Ostatni krok</string>
+    <string name="n_left">zostało %1$s</string>
+    <string name="channel_run">Trwający trening</string>
+    <string name="channel_run_text">Trening w toku, z Pomiń i Stop</string>
+</resources>

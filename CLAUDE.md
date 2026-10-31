@@ -13,8 +13,9 @@ protocol specification (`docs/protocol.md`) and implementations in several langu
 - Every command lives in the root `Taskfile.yml` (`task --list`). Run `task go:check` before committing, and
   `task kotlin:check` when `src/kotlin` changed (`task kotlin:setup` installs JDK 21 and the Android SDK).
 - `main` is protected: every change goes through a pull request with green CI. Each push to `main` publishes a
-  `panel-v0.1.<run>` release with the Go panel binaries and the signed APK (see the release jobs in
-  `.github/workflows/ci.yml`). The APK signing key lives in repository secrets; never commit a keystore.
+  `panel-v0.1.<run>` release with the Go panel binaries and the signed APKs of the Android panel and HMS workout
+  (see the release jobs in `.github/workflows/ci.yml`). The APK signing key lives in repository secrets; never
+  commit a keystore.
 - `docs/protocol.md` is the source of truth. A protocol change needs evidence (log lines, photos) and a test
   with a captured frame.
 
@@ -25,8 +26,11 @@ protocol specification (`docs/protocol.md`) and implementations in several langu
 | `src/go/lib` | Go library: `protocol` (pure framing), `treadmill` (client, acknowledged commands, `DialReconnecting`), `bluetooth` (BLE transport), `treadmilltest` (simulator), `e2e` (hardware tests, `e2e` build tag) |
 | `src/go/panel` | terminal app (Bubble Tea v2, Lip Gloss v2), a virtual HMS console; separate module, `-sim` for the simulator |
 | `src/go/tools/probe` | research tool, separate module; logs every notification and sends any command |
+| `src/go/tools/workout` | validates `.workout.yaml` files and prints their plans (`task workout -- <file>`); parser in `lib` (package `workout`) |
 | `src/kotlin/lib` | Kotlin/JVM library (package `com.craftersy.treadmill`): `protocol`, `client` (acknowledged commands, `ReconnectingTransport`), `simulator`; no Android dependency |
 | `src/kotlin/panel` | Android app (Jetpack Compose, minSdk 31), the virtual HMS console; BLE transport in `panel/bluetooth`. One Gradle build in `src/kotlin` |
+| `src/kotlin/workout` | Android app: designs `.workout.yaml` plans and runs them in a foreground service; own parser in `format`, a copy of the panel's BLE transport in `bluetooth` |
+| `docs/workout.md` | `.workout.yaml` workout file format (planned workouts for the panels) |
 | `docs/measurements` | raw session log and photos backing the specification |
 
 Record user-visible library changes in `src/go/lib/CHANGELOG.md` and `src/kotlin/lib/CHANGELOG.md` under

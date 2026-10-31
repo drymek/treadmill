@@ -1,0 +1,11 @@
+version: 1
+name: Piramida
+description: W górę po drabince temp i z powrotem
+steps:
+  - { name: Spokojnie, duration: 8m, pace: 7:00/km, incline: 1 }
+  - { name: Równo, distance: 1km, pace: 6:00/km }
+  - { name: Tempo, distance: 1km, pace: 5:15/km }
+  - { name: Szybko, distance: 800m, pace: 4:45/km }
+  - { name: Tempo, distance: 1km, pace: 5:15/km }
+  - { name: Równo, distance: 1km, pace: 6:00/km }
+  - { name: Spokojnie, duration: 8m, pace: 7:00/km, incline: 0 }

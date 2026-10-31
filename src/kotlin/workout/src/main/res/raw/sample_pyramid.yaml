@@ -1,0 +1,11 @@
+version: 1
+name: Pyramid
+description: Up the pace ladder and back down
+steps:
+  - { name: Easy, duration: 8m, pace: 7:00/km, incline: 1 }
+  - { name: Steady, distance: 1km, pace: 6:00/km }
+  - { name: Tempo, distance: 1km, pace: 5:15/km }
+  - { name: Fast, distance: 800m, pace: 4:45/km }
+  - { name: Tempo, distance: 1km, pace: 5:15/km }
+  - { name: Steady, distance: 1km, pace: 6:00/km }
+  - { name: Easy, duration: 8m, pace: 7:00/km, incline: 0 }

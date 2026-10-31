@@ -2,7 +2,10 @@ module craftersy.com/treadmill/src/go/tools
 
 go 1.26.0
 
-require craftersy.com/treadmill/src/go/lib v0.0.0
+require (
+	craftersy.com/treadmill/src/go/lib v0.0.0
+	go.yaml.in/yaml/v3 v3.0.4
+)
 
 require (
 	github.com/JuulLabs-OSS/cbgo v0.0.1 // indirect

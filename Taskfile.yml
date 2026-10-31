@@ -183,40 +183,41 @@ tasks:
     dir: '{{.KOTLIN}}'
     env: *android-env
     cmds:
-      - ./gradlew :lib:test :panel:testDebugUnitTest {{.CLI_ARGS}}
+      - ./gradlew :lib:test :panel:testDebugUnitTest :workout:testDebugUnitTest {{.CLI_ARGS}}
 
   kotlin:lint:
-    desc: Run Android lint on the app
+    desc: Run Android lint on the apps
     dir: '{{.KOTLIN}}'
     env: *android-env
     cmds:
-      - ./gradlew :panel:lintDebug
+      - ./gradlew :panel:lintDebug :workout:lintDebug
 
   kotlin:build:
-    desc: Build the library and the debug APK (src/kotlin/panel/build/outputs/apk/debug/panel-debug.apk)
+    desc: Build the library and the debug APKs (src/kotlin/<app>/build/outputs/apk/debug/<app>-debug.apk)
     dir: '{{.KOTLIN}}'
     env: *android-env
     cmds:
-      - ./gradlew :lib:assemble :panel:assembleDebug
+      - ./gradlew :lib:assemble :panel:assembleDebug :workout:assembleDebug
 
   kotlin:check:
     desc: Everything CI runs for Kotlin - unit tests, lint, build
     dir: '{{.KOTLIN}}'
     env: *android-env
     cmds:
-      - ./gradlew :lib:test :panel:testDebugUnitTest :panel:lintDebug :lib:assemble :panel:assembleDebug
+      - ./gradlew :lib:test :panel:testDebugUnitTest :workout:testDebugUnitTest :panel:lintDebug :workout:lintDebug :lib:assemble :panel:assembleDebug :workout:assembleDebug
 
   kotlin:release:
-    desc: 'Build the release APK into dist/ (VERSION, VERSION_CODE); signed when ANDROID_KEYSTORE_FILE, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD are set'
+    desc: 'Build the release APKs of the panel and HMS workout into dist/ (VERSION, VERSION_CODE); signed when ANDROID_KEYSTORE_FILE, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD are set'
     dir: '{{.KOTLIN}}'
     env: *android-env
     vars:
       VERSION: '{{.VERSION | default "0.1.0"}}'
       VERSION_CODE: '{{.VERSION_CODE | default "1"}}'
     cmds:
-      - ./gradlew :panel:assembleRelease -PversionName={{.VERSION}} -PversionCode={{.VERSION_CODE}}
+      - ./gradlew :panel:assembleRelease :workout:assembleRelease -PversionName={{.VERSION}} -PversionCode={{.VERSION_CODE}}
       - mkdir -p "{{.ROOT_DIR}}/dist"
       - cp panel/build/outputs/apk/release/panel-release*.apk "{{.ROOT_DIR}}/dist/treadmill-panel_{{.VERSION}}.apk"
+      - cp workout/build/outputs/apk/release/workout-release*.apk "{{.ROOT_DIR}}/dist/hms-workout_{{.VERSION}}.apk"
 
   kotlin:install:
     desc: 'Install the debug APK on the phone connected over USB or Wi-Fi debugging (adb devices)'
@@ -248,6 +249,14 @@ tasks:
       - task: kotlin:install
       - '"$ANDROID_HOME/platform-tools/adb" shell am start -n {{.ANDROID_PACKAGE}}/.MainActivity'
 
+  workout:android:
+    desc: Install the Android workout app on the connected phone and open it
+    dir: '{{.KOTLIN}}'
+    env: *android-env
+    cmds:
+      - ./gradlew :workout:installDebug
+      - '"$ANDROID_HOME/platform-tools/adb" shell am start -n com.craftersy.treadmill.workout/.MainActivity'
+
   # ── Protocol research ────────────────────────────────────────────────────
 
   probe:
@@ -255,6 +264,12 @@ tasks:
     dir: '{{.GO_TOOLS}}'
     cmds:
       - go run ./probe -dir {{.ROOT_DIR}}/.probe -name {{.TREADMILL_NAME}} {{.CLI_ARGS}}
+
+  workout:
+    desc: 'Validate workout files and print their plans, e.g. task workout -- plan.workout.yaml'
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - bin="$(mktemp -d)/workout" && go build -C {{.ROOT_DIR}}/{{.GO_TOOLS}} -o "$bin" ./workout && "$bin" {{.CLI_ARGS}}
 
   probe:cmd:
     desc: 'Send a command to a running probe, e.g. task probe:cmd -- set 2.0 0'
