@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in a library or tool does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the belt moved, sped up or kept running unexpectedly, please report it privately instead
+        (Security → Report a vulnerability).
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Go library (src/go/lib)
+        - Probe tool (src/go/tools/probe)
+        - Protocol specification (docs/protocol.md)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Code or commands. A failing test against treadmilltest.Simulator is ideal.
+      render: go
+  - type: textarea
+    id: frames
+    attributes:
+      label: Raw frames
+      description: Relevant Status.Raw values or probe log lines, if the treadmill was involved.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: e.g. src/go/lib/v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: e.g. macOS 15.4, Go 1.25.3
+    validations:
+      required: true

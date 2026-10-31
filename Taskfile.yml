@@ -1,0 +1,174 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  GO_LIB: src/go/lib
+  GO_TOOLS: src/go/tools
+  GO_MODULES: [src/go/lib, src/go/tools]
+  TREADMILL_NAME: '{{.TREADMILL_NAME | default "RZ_TreadMil"}}'
+  CAMERA: '{{.CAMERA | default "0"}}'
+
+tasks:
+  default:
+    desc: List all tasks
+    cmds:
+      - task --list
+    silent: true
+
+  # ── Go: quality ──────────────────────────────────────────────────────────
+
+  go:fmt:
+    desc: Format Go code
+    cmds:
+      - for: { var: GO_MODULES }
+        cmd: gofmt -w {{.ITEM}}
+
+  go:fmt:check:
+    desc: Fail if Go code is not formatted
+    cmds:
+      - for: { var: GO_MODULES }
+        cmd: test -z "$(gofmt -l {{.ITEM}})" || (gofmt -l {{.ITEM}} && echo "run 'task go:fmt'" && exit 1)
+
+  go:vet:
+    desc: Run go vet on all modules, including e2e tests
+    cmds:
+      - for: { var: GO_MODULES }
+        cmd: cd {{.ITEM}} && go vet ./...
+      - cd {{.GO_LIB}} && go vet -tags e2e ./e2e
+
+  go:lint:
+    desc: Run staticcheck on all modules
+    cmds:
+      - for: { var: GO_MODULES }
+        cmd: cd {{.ITEM}} && go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
+      - cd {{.GO_LIB}} && go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 -tags e2e ./e2e
+
+  go:vuln:
+    desc: Scan all modules for known vulnerabilities
+    cmds:
+      - for: { var: GO_MODULES }
+        cmd: cd {{.ITEM}} && go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
+  go:tidy:
+    desc: Tidy go.mod and go.sum of all modules
+    cmds:
+      - for: { var: GO_MODULES }
+        cmd: cd {{.ITEM}} && go mod tidy
+
+  go:build:
+    desc: Build all modules for macOS and Linux
+    cmds:
+      - cd {{.GO_LIB}} && go build ./... && GOOS=linux go build ./...
+      - cd {{.GO_TOOLS}} && go build -o "$(mktemp -d)" ./... && GOOS=linux go build -o "$(mktemp -d)" ./...
+
+  go:test:
+    desc: Run unit and simulator tests (no hardware)
+    cmds:
+      - for: { var: GO_MODULES }
+        cmd: cd {{.ITEM}} && go test {{.CLI_ARGS}} ./...
+
+  go:test:race:
+    desc: Run tests with the race detector
+    cmds:
+      - for: { var: GO_MODULES }
+        cmd: cd {{.ITEM}} && go test -race ./...
+
+  go:cover:
+    desc: Write an HTML coverage report of the library to src/go/lib/coverage.html
+    dir: '{{.GO_LIB}}'
+    cmds:
+      - go test -coverpkg=./... -coverprofile=coverage.out ./...
+      - go tool cover -func=coverage.out | tail -1
+      - go tool cover -html=coverage.out -o coverage.html
+
+  go:fuzz:
+    desc: 'Fuzz the frame decoders (FUZZTIME, default 30s each)'
+    dir: '{{.GO_LIB}}'
+    vars:
+      FUZZTIME: '{{.FUZZTIME | default "30s"}}'
+    cmds:
+      - go test -run=^$ -fuzz=FuzzParseStatus -fuzztime={{.FUZZTIME}} ./protocol
+      - go test -run=^$ -fuzz=FuzzDecodeCommand -fuzztime={{.FUZZTIME}} ./protocol
+
+  go:check:
+    desc: Everything CI runs - format check, vet, staticcheck, build, race tests
+    cmds:
+      - task: go:fmt:check
+      - task: go:vet
+      - task: go:lint
+      - task: go:build
+      - task: go:test:race
+
+  go:doc:
+    desc: Serve package documentation at http://localhost:6060
+    dir: '{{.GO_LIB}}'
+    cmds:
+      - go run golang.org/x/pkgsite/cmd/pkgsite@latest -http=localhost:6060
+
+  # ── Go: physical treadmill ───────────────────────────────────────────────
+
+  go:e2e:
+    desc: 'End-to-end tests on the physical treadmill; belt stays still (TREADMILL_NAME, TREADMILL_ADDRESS)'
+    dir: '{{.GO_LIB}}'
+    cmds:
+      - go test -tags e2e -count=1 -v ./e2e
+    env:
+      TREADMILL_E2E: 1
+      TREADMILL_NAME: '{{.TREADMILL_NAME}}'
+
+  go:e2e:motion:
+    desc: 'End-to-end tests that MOVE THE BELT (max 2.0 km/h) - safety key attached, nobody walking on it'
+    dir: '{{.GO_LIB}}'
+    prompt: The belt will move. Is the safety key attached and the belt clear?
+    cmds:
+      - go test -tags e2e -count=1 -v ./e2e
+    env:
+      TREADMILL_E2E: 1
+      TREADMILL_E2E_MOTION: 1
+      TREADMILL_NAME: '{{.TREADMILL_NAME}}'
+
+  # ── Go: release ──────────────────────────────────────────────────────────
+
+  go:release:tag:
+    desc: 'Tag a library release locally, e.g. task go:release:tag VERSION=v0.1.0 (push with git push origin <tag>)'
+    requires:
+      vars: [VERSION]
+    preconditions:
+      - sh: '[[ "{{.VERSION}}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]'
+        msg: VERSION must look like v1.2.3
+      - sh: test -z "$(git status --porcelain)"
+        msg: commit or stash your changes first
+      - sh: grep -q "## \[{{trimPrefix "v" .VERSION}}\]" {{.GO_LIB}}/CHANGELOG.md
+        msg: add a "## [{{trimPrefix "v" .VERSION}}]" section to {{.GO_LIB}}/CHANGELOG.md first
+    cmds:
+      - task: go:check
+      - git tag -a {{.GO_LIB}}/{{.VERSION}} -m "Go library {{.VERSION}}"
+      - echo "Tagged {{.GO_LIB}}/{{.VERSION}}. Push with - git push origin {{.GO_LIB}}/{{.VERSION}}"
+
+  # ── Protocol research ────────────────────────────────────────────────────
+
+  probe:
+    desc: Log every notification to .probe/ and accept commands on stdin or http://127.0.0.1:8090/cmd
+    dir: '{{.GO_TOOLS}}'
+    cmds:
+      - go run ./probe -dir {{.ROOT_DIR}}/.probe -name {{.TREADMILL_NAME}} {{.CLI_ARGS}}
+
+  probe:cmd:
+    desc: 'Send a command to a running probe, e.g. task probe:cmd -- set 2.0 0'
+    cmds:
+      - curl -sS --fail-with-body -d '{{.CLI_ARGS}}' http://127.0.0.1:8090/cmd
+
+  cam:devices:
+    desc: List cameras (macOS)
+    cmds:
+      - ffmpeg -hide_banner -f avfoundation -list_devices true -i "" || true
+
+  cam:record:
+    desc: 'Photograph the console every second into .cam/HHMMSS.jpg (macOS, CAMERA index, default 0)'
+    dir: '{{.ROOT_DIR}}'
+    cmds:
+      - mkdir -p .cam
+      - >-
+        cd .cam && ffmpeg -hide_banner -loglevel error -f avfoundation -framerate 30 -video_size 640x480
+        -pixel_format uyvy422 -i {{.CAMERA}} -vf fps=1 -q:v 3 -strftime 1 %H%M%S.jpg
