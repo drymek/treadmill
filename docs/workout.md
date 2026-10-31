@@ -6,6 +6,7 @@
 | **Date** | 2026-10-31 |
 | **Status** | Draft. |
 | **Reference implementation** | [`src/go/tools/workout/lib`](../src/go/tools/workout/lib); validator `task workout -- <file>` |
+| **Application** | [`src/kotlin/workout`](../src/kotlin/workout), the Android app that designs and runs workouts |
 | **File extension** | `.workout.yaml` |
 
 This document specifies a file that describes a planned treadmill workout: a list of steps, each with a pace or

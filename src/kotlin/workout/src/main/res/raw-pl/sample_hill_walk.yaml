@@ -1,0 +1,27 @@
+version: 1
+name: Marsz po wzgórzach
+description: Żwawy marsz przez trzy łagodne wzniesienia
+steps:
+  - name: Płasko
+    duration: 5m
+    speed: 5 km/h
+    incline: 0
+  - repeat: 3
+    steps:
+      - name: Podejście
+        duration: 4m
+        speed: 5.5 km/h
+        incline: 8
+        note: Krótkie kroki, wyprostowana sylwetka
+      - name: Szczyt
+        duration: 2m
+        speed: 5 km/h
+        incline: 12
+      - name: Zejście
+        duration: 3m
+        speed: 6 km/h
+        incline: 2
+  - name: Płasko
+    duration: 5m
+    speed: 4.5 km/h
+    incline: 0

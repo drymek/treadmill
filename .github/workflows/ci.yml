@@ -140,7 +140,7 @@ jobs:
           if-no-files-found: error
 
   package-android:
-    name: Package Android panel
+    name: Package Android apps
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [check, kotlin, vuln, fuzz, coverage]
     runs-on: ubuntu-latest
@@ -165,9 +165,11 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      # An unsigned build is named panel-release-unsigned.apk and cannot be installed.
-      - name: Check the APK is signed
-        run: test -f src/kotlin/panel/build/outputs/apk/release/panel-release.apk
+      # An unsigned build is named <app>-release-unsigned.apk and cannot be installed.
+      - name: Check the APKs are signed
+        run: |
+          test -f src/kotlin/panel/build/outputs/apk/release/panel-release.apk
+          test -f src/kotlin/workout/build/outputs/apk/release/workout-release.apk
       - uses: actions/upload-artifact@v7
         with:
           name: panel-android

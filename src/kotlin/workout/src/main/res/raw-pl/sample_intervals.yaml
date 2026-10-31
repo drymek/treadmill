@@ -1,0 +1,25 @@
+version: 1
+name: Interwały 3-minutowe
+description: Pięć szybkich odcinków z truchtem pomiędzy
+steps:
+  - name: Rozgrzewka
+    duration: 10m
+    pace: 6:30/km
+    incline: 1
+  - repeat: 5
+    steps:
+      - name: Szybko
+        duration: 3m
+        pace: 4:30/km
+        incline: 2
+        note: Utrzymuj kadencję
+      - name: Trucht
+        distance: 400m
+        pace: 7:00/km
+  - name: Marsz
+    duration: 2m
+    speed: 5 km/h
+  - name: Schłodzenie
+    duration: 10m
+    pace: 6:30/km
+    incline: 0

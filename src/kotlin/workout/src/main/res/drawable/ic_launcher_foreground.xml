@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A workout profile: five rising bars from walk teal to sprint coral. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF2DE2C4" android:pathData="M33,58h6a2,2 0,0 1,2 2v14h-10v-14a2,2 0,0 1,2 -2z" />
+    <path android:fillColor="#FF3CB8FF" android:pathData="M43,50h6a2,2 0,0 1,2 2v22h-10v-22a2,2 0,0 1,2 -2z" />
+    <path android:fillColor="#FF8B7CFF" android:pathData="M53,40h6a2,2 0,0 1,2 2v32h-10v-32a2,2 0,0 1,2 -2z" />
+    <path android:fillColor="#FFFF5FB1" android:pathData="M63,32h6a2,2 0,0 1,2 2v40h-10v-40a2,2 0,0 1,2 -2z" />
+    <path android:fillColor="#FFC6FF4A" android:pathData="M73,46h4a2,2 0,0 1,2 2v26h-8v-26a2,2 0,0 1,2 -2z" />
+</vector>
