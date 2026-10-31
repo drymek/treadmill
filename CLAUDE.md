@@ -30,6 +30,7 @@ protocol specification (`docs/protocol.md`) and implementations in several langu
 | `src/kotlin/lib` | Kotlin/JVM library (package `com.craftersy.treadmill`): `protocol`, `client` (acknowledged commands, `ReconnectingTransport`), `simulator`; no Android dependency |
 | `src/kotlin/panel` | Android app (Jetpack Compose, minSdk 31), the virtual HMS console; BLE transport in `panel/bluetooth`. One Gradle build in `src/kotlin` |
 | `src/kotlin/workout` | Android app: designs `.workout.yaml` plans and runs them in a foreground service; own parser in `format`, a copy of the panel's BLE transport in `bluetooth` |
+| `site` | HMS workout landing page (English and Polish), published to GitHub Pages by `.github/workflows/pages.yml`; `task site` serves it locally |
 | `docs/workout.md` | `.workout.yaml` workout file format (planned workouts for the panels) |
 | `docs/measurements` | raw session log and photos backing the specification |
 

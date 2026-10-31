@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HMS workout</title>
+  <meta name="description" content="Zaplanuj trening na telefonie z Androidem, a HMS workout poprowadzi bieżnię Bluetooth RZ_TreadMil, gdy biegniesz. Plan treadmill workouts on Android and let the app drive the treadmill.">
+  <meta name="theme-color" content="#07080C">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* The app's palette: deep ink, glassy surfaces, lime for the main action, an intensity scale from walk to sprint. */
+    :root {
+      --ink: #07080c;
+      --surface: #11131a;
+      --surface-high: #181b24;
+      --surface-higher: #20242f;
+      --outline: rgba(255, 255, 255, .12);
+      --outline-strong: rgba(255, 255, 255, .2);
+      --text: #f4f5f8;
+      --muted: #9ba1b0;
+      --faint: #5e6473;
+      --accent: #c6ff4a;
+      --on-accent: #0b1200;
+      --walk: #2de2c4;
+      --jog: #3cb8ff;
+      --run: #8b7cff;
+      --tempo: #ff5fb1;
+      --sprint: #ff7a45;
+      --incline: #ffc857;
+      --hero: linear-gradient(90deg, var(--walk), var(--run), var(--tempo));
+      --radius: 28px;
+      --max: 1120px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--ink);
+      color: var(--text);
+      font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-feature-settings: "tnum";
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+
+    /* Navigation */
+    nav {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      background: rgba(7, 8, 12, .72);
+      border-bottom: 1px solid var(--outline);
+    }
+    nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; text-decoration: none; }
+    .brand svg { width: 30px; height: 30px; }
+    nav .links { display: flex; gap: 24px; margin-left: auto; font-size: 15px; }
+    @media (max-width: 380px) { nav .actions .btn { display: none; } }
+    nav .links a { color: var(--muted); text-decoration: none; }
+    nav .links a:hover { color: var(--text); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      height: 54px; padding: 0 26px; border-radius: 999px;
+      font-weight: 600; font-size: 16px; text-decoration: none; white-space: nowrap;
+      transition: transform .15s ease, background .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn svg { width: 20px; height: 20px; }
+    .btn-primary { background: var(--accent); color: var(--on-accent); }
+    .btn-secondary { background: var(--surface-high); color: var(--text); border: 1px solid var(--outline); }
+    .btn-small { height: 40px; padding: 0 18px; font-size: 14px; }
+
+    .kicker {
+      font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      background: var(--hero); -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    h1, h2, h3 { margin: 0; letter-spacing: -.03em; line-height: 1.05; }
+    h1 { font-size: clamp(44px, 7vw, 76px); font-weight: 800; }
+    h2 { font-size: clamp(32px, 4.5vw, 48px); font-weight: 700; }
+    h3 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; line-height: 1.25; }
+    .lead { color: var(--muted); font-size: clamp(17px, 2vw, 20px); max-width: 560px; }
+    .muted { color: var(--muted); }
+
+    /* Hero */
+    .hero { position: relative; padding: 72px 0 96px; }
+    .hero::before {
+      content: ""; position: absolute; inset: -200px -20% auto; height: 760px; z-index: -1;
+      background:
+        radial-gradient(40% 50% at 70% 40%, rgba(139, 124, 255, .28), transparent 70%),
+        radial-gradient(30% 40% at 85% 60%, rgba(255, 95, 177, .18), transparent 70%),
+        radial-gradient(35% 45% at 20% 20%, rgba(45, 226, 196, .12), transparent 70%);
+    }
+    .hero .wrap { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+    .hero h1 em { font-style: normal; background: var(--hero); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .hero .lead { margin: 22px 0 32px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .release { margin-top: 14px; font-size: 14px; color: var(--faint); }
+    .hero-chart { margin-top: 44px; max-width: 520px; }
+    @media (max-width: 900px) {
+      .hero { padding-top: 40px; }
+      .hero .wrap { grid-template-columns: 1fr; }
+      .phone { margin: 0 auto; }
+    }
+
+    /* Phone frame around the demo GIF */
+    .phone {
+      position: relative; width: min(320px, 78vw); aspect-ratio: 1080 / 2104;
+      padding: 12px; border-radius: 48px;
+      background: linear-gradient(160deg, #2a2e3a, #0d0f15);
+      box-shadow: 0 0 0 1px var(--outline-strong), 0 40px 120px rgba(139, 124, 255, .25), 0 20px 60px rgba(0, 0, 0, .6);
+    }
+    .phone img { width: 100%; height: 100%; display: block; border-radius: 37px; object-fit: cover; background: var(--ink); }
+    /* PL / EN in the navigation */
+    .lang { display: flex; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--outline); }
+    .lang button {
+      height: 32px; min-width: 42px; padding: 0 10px; border: 0; border-radius: 999px; cursor: pointer;
+      background: transparent; color: var(--muted); font: 600 13px Inter, sans-serif;
+    }
+    .lang button[aria-pressed="true"] { background: var(--text); color: var(--ink); }
+    nav .actions { display: flex; align-items: center; gap: 10px; }
+    @media (max-width: 720px) { nav .links { display: none; } nav .actions { margin-left: auto; } }
+
+    /* Profile chart, drawn by script from a workout: bar width is time, height is speed, colour is intensity */
+    .profile { display: flex; align-items: flex-end; gap: 3px; height: 120px; position: relative; }
+    .profile .bar { border-radius: 7px 7px 3px 3px; min-width: 3px; opacity: .95; }
+    .profile svg.incline { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+
+    /* Sections */
+    section { padding: 96px 0; }
+    .section-head { max-width: 640px; margin-bottom: 48px; }
+    .section-head h2 { margin: 10px 0 14px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--outline); border-radius: var(--radius);
+      padding: 28px;
+    }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .step .num {
+      display: inline-flex; width: 40px; height: 40px; border-radius: 14px; align-items: center; justify-content: center;
+      font-weight: 700; color: var(--ink); margin-bottom: 18px;
+    }
+    .step p { margin: 8px 0 0; color: var(--muted); }
+    @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feature .icon {
+      width: 46px; height: 46px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+    }
+    .feature .icon svg { width: 22px; height: 22px; }
+    .feature p { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
+    @media (max-width: 960px) { .features { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 620px) { .features { grid-template-columns: 1fr; } }
+
+    /* The file format, side by side with the profile it makes */
+    .format { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+    pre {
+      margin: 0; padding: 24px; border-radius: var(--radius); background: #0b0c11; border: 1px solid var(--outline);
+      font: 13.5px/1.65 "SF Mono", ui-monospace, Menlo, Consolas, monospace; color: #cbd3e1; overflow-x: auto;
+    }
+    pre .k { color: var(--jog); } pre .v { color: var(--accent); } pre .c { color: var(--faint); } pre .n { color: var(--incline); }
+    .format .card { display: flex; flex-direction: column; justify-content: space-between; gap: 24px; }
+    .stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat .label { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .stat .value { font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+    @media (max-width: 860px) { .format { grid-template-columns: 1fr; } }
+
+    /* Download */
+    .download {
+      position: relative; overflow: hidden; border-radius: 36px; padding: 56px;
+      background: linear-gradient(135deg, #151827, #0e1016);
+      border: 1px solid var(--outline);
+      display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center;
+    }
+    .download::after {
+      content: ""; position: absolute; right: -120px; top: -120px; width: 420px; height: 420px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(198, 255, 74, .18), transparent 65%); pointer-events: none;
+    }
+    .download h2 { margin: 10px 0 16px; }
+    .install { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; counter-reset: s; }
+    .install li { display: flex; gap: 14px; color: var(--muted); }
+    .install li::before {
+      counter-increment: s; content: counter(s); flex: none; width: 28px; height: 28px; border-radius: 10px;
+      background: var(--surface-higher); color: var(--text); font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .install b { color: var(--text); font-weight: 600; }
+    .requirements { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+      background: var(--surface-high); color: var(--muted); font-size: 13px; font-weight: 500;
+    }
+    .safety {
+      margin-top: 28px; padding: 16px 18px; border-radius: 18px; font-size: 14px; color: var(--muted);
+      background: rgba(255, 200, 87, .07); border: 1px solid rgba(255, 200, 87, .22);
+    }
+    .safety b { color: var(--incline); }
+    @media (max-width: 860px) { .download { grid-template-columns: 1fr; padding: 32px 22px; } }
+
+    footer { border-top: 1px solid var(--outline); padding: 40px 0 56px; color: var(--faint); font-size: 14px; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 32px; justify-content: space-between; }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+    footer .links { display: flex; gap: 24px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 108 108" aria-hidden="true">
+        <rect width="108" height="108" rx="28" fill="#141428"/>
+        <path fill="#2DE2C4" d="M33,58h6a2,2 0 0 1 2,2v14h-10v-14a2,2 0 0 1 2,-2z"/>
+        <path fill="#3CB8FF" d="M43,50h6a2,2 0 0 1 2,2v22h-10v-22a2,2 0 0 1 2,-2z"/>
+        <path fill="#8B7CFF" d="M53,40h6a2,2 0 0 1 2,2v32h-10v-32a2,2 0 0 1 2,-2z"/>
+        <path fill="#FF5FB1" d="M63,32h6a2,2 0 0 1 2,2v40h-10v-40a2,2 0 0 1 2,-2z"/>
+        <path fill="#C6FF4A" d="M73,46h4a2,2 0 0 1 2,2v26h-8v-26a2,2 0 0 1 2,-2z"/>
+      </svg>
+      HMS workout
+    </a>
+    <div class="links">
+      <a href="#how" data-i18n="nav.how">Jak to działa</a>
+      <a href="#features" data-i18n="nav.features">Funkcje</a>
+      <a href="#format" data-i18n="nav.format">Pliki treningów</a>
+      <a href="https://github.com/drymek/treadmill">GitHub</a>
+    </div>
+    <div class="actions">
+      <div class="lang" role="group" aria-label="Język / Language">
+        <button type="button" data-set-lang="pl" aria-pressed="true">PL</button>
+        <button type="button" data-set-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <a class="btn btn-primary btn-small" href="#download" data-i18n="nav.download">Pobierz</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="kicker" data-i18n="hero.kicker">Do bieżni Bluetooth RZ_TreadMil</div>
+      <h1 style="margin-top:14px" data-i18n="hero.title">Zaplanuj każdy krok.<br><em>Bieżnia zrobi resztę.</em></h1>
+      <p class="lead" data-i18n="hero.lead">Projektuj interwały i marsze pod górę na telefonie z Androidem. HMS workout ustawia prędkość
+        i wznos każdego kroku za Ciebie, nawet przy zablokowanym ekranie. Ty tylko biegniesz.</p>
+      <div class="cta">
+        <a class="btn btn-primary" data-apk href="https://github.com/drymek/treadmill/releases/latest">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          <span data-i18n="download.button">Pobierz APK</span>
+        </a>
+        <a class="btn btn-secondary" href="#how" data-i18n="hero.how">Zobacz, jak to działa</a>
+      </div>
+      <div class="release" data-release data-i18n="hero.release">Darmowa i otwarta · Android 12 lub nowszy</div>
+      <div class="hero-chart"><div class="profile" aria-hidden="true"></div></div>
+    </div>
+    <div class="phone">
+      <img id="demo" src="assets/demo-pl.gif" data-i18n-alt="hero.demo" alt="Projektowanie podbiegów w HMS workout, zapis i uruchomienie treningu" width="1080" height="2104">
+    </div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker" data-i18n="how.kicker">Jak to działa</div>
+      <h2 data-i18n="how.title">Od planu do skończonego biegu w trzech krokach</h2>
+      <p class="lead" data-i18n="how.lead">Żadnych przycisków w trakcie biegu. Aplikacja rozmawia z bieżnią przez Bluetooth, tak jak
+        jej konsola.</p>
+    </div>
+    <div class="steps">
+      <div class="card step">
+        <div class="num" style="background:var(--walk)">1</div>
+        <h3 data-i18n="how.1.title">Zaprojektuj trening</h3>
+        <p data-i18n="how.1.text"></p>
+      </div>
+      <div class="card step">
+        <div class="num" style="background:var(--run)">2</div>
+        <h3 data-i18n="how.2.title">Naciśnij Start i zablokuj telefon</h3>
+        <p data-i18n="how.2.text"></p>
+      </div>
+      <div class="card step">
+        <div class="num" style="background:var(--tempo)">3</div>
+        <h3 data-i18n="how.3.title">Koniec, pas się zatrzymuje</h3>
+        <p data-i18n="how.3.text"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker" data-i18n="features.kicker">Funkcje</div>
+      <h2 data-i18n="features.title">Do biegania, nie do klikania</h2>
+    </div>
+    <div class="features">
+      <div class="card feature">
+        <div class="icon" style="background:rgba(139,124,255,.14);color:var(--run)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 14h3v6H3zM8 11h3v9H8zM13 7h3v13h-3zM18 4h3v16h-3z"/></svg></div>
+        <h3 data-i18n="f.1.title"></h3><p data-i18n="f.1.text"></p>
+      </div>
+      <div class="card feature">
+        <div class="icon" style="background:rgba(198,255,74,.12);color:var(--accent)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6zm3 11c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg></div>
+        <h3 data-i18n="f.2.title"></h3><p data-i18n="f.2.text"></p>
+      </div>
+      <div class="card feature">
+        <div class="icon" style="background:rgba(255,95,177,.13);color:var(--tempo)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></div>
+        <h3 data-i18n="f.3.title"></h3><p data-i18n="f.3.text"></p>
+      </div>
+      <div class="card feature">
+        <div class="icon" style="background:rgba(60,184,255,.13);color:var(--jog)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div>
+        <h3 data-i18n="f.4.title"></h3><p data-i18n="f.4.text"></p>
+      </div>
+      <div class="card feature">
+        <div class="icon" style="background:rgba(45,226,196,.12);color:var(--walk)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>
+        <h3 data-i18n="f.5.title"></h3><p data-i18n="f.5.text"></p>
+      </div>
+      <div class="card feature">
+        <div class="icon" style="background:rgba(255,200,87,.12);color:var(--incline)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z"/></svg></div>
+        <h3 data-i18n="f.6.title"></h3><p data-i18n="f.6.text"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="format" style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker" data-i18n="format.kicker">Pliki treningów</div>
+      <h2 data-i18n="format.title">Trening to dwadzieścia linijek tekstu</h2>
+      <p class="lead" data-i18n="format.lead"></p>
+    </div>
+    <div class="format">
+      <pre id="yaml"></pre>
+      <div class="card">
+        <div>
+          <h3 id="workout-name"></h3>
+          <p class="muted" style="margin:6px 0 0" data-i18n="format.shows"></p>
+        </div>
+        <div class="profile" style="height:150px" aria-hidden="true"></div>
+        <div class="stats">
+          <div class="stat"><div class="label" data-i18n="stat.time">Czas</div><div class="value">35:00</div></div>
+          <div class="stat"><div class="label" data-i18n="stat.distance">Dystans</div><div class="value" id="stat-distance">5.58 km</div></div>
+          <div class="stat"><div class="label" data-i18n="stat.steps">Kroki</div><div class="value">14</div></div>
+        </div>
+        <a class="muted" href="https://github.com/drymek/treadmill/blob/main/docs/workout.md" data-i18n="format.spec"></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="download" style="padding-top:0">
+  <div class="wrap">
+    <div class="download">
+      <div style="position:relative;z-index:1">
+        <div class="kicker" data-i18n="download.kicker">Pobierz</div>
+        <h2 data-i18n="download.title">Pobierz HMS workout</h2>
+        <p class="lead" style="margin-bottom:28px" data-i18n="download.lead"></p>
+        <a class="btn btn-primary" data-apk href="https://github.com/drymek/treadmill/releases/latest">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          <span data-i18n="download.button" data-apk-label>Pobierz APK</span>
+        </a>
+        <div class="release" data-release data-i18n="download.all"></div>
+        <div class="requirements">
+          <span class="pill">Android 12+</span>
+          <span class="pill">Bluetooth LE</span>
+          <span class="pill" data-i18n="download.treadmills"></span>
+        </div>
+      </div>
+      <div style="position:relative;z-index:1">
+        <ol class="install">
+          <li><span data-i18n="install.1"></span></li>
+          <li><span data-i18n="install.2"></span></li>
+          <li><span data-i18n="install.3"></span></li>
+          <li><span data-i18n="install.4"></span></li>
+        </ol>
+        <div class="safety" data-i18n="install.safety"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div data-i18n="footer.text"></div>
+    <div class="links">
+      <a href="https://github.com/drymek/treadmill" data-i18n="footer.source">Kod</a>
+      <a href="https://github.com/drymek/treadmill/blob/main/docs/protocol.md" data-i18n="footer.protocol">Protokół Bluetooth</a>
+      <a href="https://github.com/drymek/treadmill/blob/main/docs/workout.md" data-i18n="footer.format">Format treningów</a>
+      <a href="https://github.com/drymek/treadmill/releases" data-i18n="footer.releases">Wydania</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const RELEASES = "https://github.com/drymek/treadmill/releases/latest";
+
+  const TEXT = {
+    pl: {
+      "title": "HMS workout: trening na bieżni prowadzony z telefonu",
+      "nav.how": "Jak to działa", "nav.features": "Funkcje", "nav.format": "Pliki treningów", "nav.download": "Pobierz",
+      "hero.kicker": "Do bieżni Bluetooth RZ_TreadMil",
+      "hero.title": "Zaplanuj każdy krok.<br><em>Bieżnia zrobi resztę.</em>",
+      "hero.lead": "Projektuj interwały i marsze pod górę na telefonie z Androidem. HMS workout ustawia prędkość i wznos każdego kroku za Ciebie, nawet przy zablokowanym ekranie. Ty tylko biegniesz.",
+      "hero.how": "Zobacz, jak to działa",
+      "hero.release": "Darmowa i otwarta · Android 12 lub nowszy",
+      "hero.demo": "Projektowanie podbiegów w HMS workout, zapis i uruchomienie treningu",
+      "how.kicker": "Jak to działa",
+      "how.title": "Od planu do skończonego biegu w trzech krokach",
+      "how.lead": "Żadnych przycisków w trakcie biegu. Aplikacja rozmawia z bieżnią przez Bluetooth, tak jak jej konsola.",
+      "how.1.title": "Zaprojektuj trening",
+      "how.1.text": "Dodaj kroki z tempem, np. 4:30/km, albo prędkością, wznosem oraz czasem lub dystansem. Interwały zamknij w bloku powtórzeń. Wykres zmienia się na bieżąco.",
+      "how.2.title": "Naciśnij Start i zablokuj telefon",
+      "how.2.text": "Pas rusza po odliczaniu bieżni. Prędkość i wznos każdego kroku idą na czas, a telefon wibruje i piszczy, gdy zaczyna się nowy krok.",
+      "how.3.title": "Koniec, pas się zatrzymuje",
+      "how.3.text": "Po ostatnim kroku aplikacja zatrzymuje pas i pokazuje czas i dystans. Krok możesz pominąć, a trening przerwać w każdej chwili, w aplikacji lub w powiadomieniu.",
+      "features.kicker": "Funkcje", "features.title": "Do biegania, nie do klikania",
+      "f.1.title": "Cały trening na jednym wykresie",
+      "f.1.text": "Wykres profilu pokazuje każdy krok: szerokość to czas, wysokość to prędkość, kolor idzie od marszu do sprintu, a żółta linia to wznos.",
+      "f.2.title": "Działa przy wyłączonym ekranie",
+      "f.2.text": "Trening działa w usłudze pierwszoplanowej. Powiadomienie odlicza krok i ma przyciski Pomiń i Stop, a ekran może pozostać ciemny.",
+      "f.3.title": "Tempo, nie tylko km/h",
+      "f.3.text": "Planuj w min/km, jeśli tak myślisz. Aplikacja pokazuje dokładną prędkość bieżni i tempo, jakie z niej wyjdzie.",
+      "f.4.title": "Zwykłe pliki, Twoje",
+      "f.4.text": "Każdy trening to mały plik <code>.workout.yaml</code>. Udostępnij go, trzymaj w notatce, zaimportuj z linku lub schowka, otwórz z menedżera plików.",
+      "f.5.title": "Sama znajdzie bieżnię",
+      "f.5.text": "Wyszukaj urządzenia Bluetooth w pobliżu i wybierz swoje. Gdy połączenie zerwie się w trakcie, aplikacja zatrzyma pas, gdy tylko wróci.",
+      "f.6.title": "Wypróbuj bez bieżni",
+      "f.6.text": "Wbudowany symulator przeprowadzi dowolny trening na kanapie: z rozpędzaniem, odliczaniem i dystansem. Po polsku i po angielsku.",
+      "format.kicker": "Pliki treningów", "format.title": "Trening to dwadzieścia linijek tekstu",
+      "format.lead": "Napisz go w edytorze aplikacji albo ręcznie. Ten plik to podbiegi z filmu powyżej.",
+      "format.shows": "Tak ten plik pokazuje aplikacja",
+      "format.spec": "Przeczytaj specyfikację formatu →",
+      "stat.time": "Czas", "stat.distance": "Dystans", "stat.steps": "Kroki",
+      "download.kicker": "Pobierz", "download.title": "Pobierz HMS workout",
+      "download.lead": "Darmowa, otwarta i bez zakładania konta. Aktualizacje instalują się na poprzednią wersję.",
+      "download.button": "Pobierz APK",
+      "download.size": size => `Pobierz APK · ${size.replace(".", ",")} MB`,
+      "download.all": `Wszystkie pliki na <a href="${RELEASES}">stronie wydania</a>`,
+      "download.version": (version, url) => `Wersja ${version} · <a href="${url}">informacje o wydaniu</a> · Android 12 lub nowszy`,
+      "download.treadmills": "Bieżnie widoczne jako RZ_TreadMil",
+      "install.1": "Otwórz pobrany plik <b>.apk</b> na telefonie.",
+      "install.2": "Jeśli Android zapyta, pozwól przeglądarce <b>instalować nieznane aplikacje</b>.",
+      "install.3": "Otwórz <b>HMS workout</b>, zezwól na <b>Urządzenia w pobliżu</b> i powiadomienia.",
+      "install.4": "Włącz bieżnię, wybierz ją w <b>Ustawienia → Szukaj urządzeń w pobliżu</b> i naciśnij <b>Start</b>.",
+      "install.safety": "<b>Bezpieczeństwo przede wszystkim.</b> Pas rusza zaraz po naciśnięciu Start. Przed każdym treningiem przypnij klucz bezpieczeństwa; Stop w aplikacji lub na konsoli zawsze kończy trening.",
+      "footer.text": `HMS workout jest częścią <a href="https://github.com/drymek/treadmill">drymek/treadmill</a>, licencja MIT.<br>Projekt niezwiązany z producentem bieżni.`,
+      "footer.source": "Kod", "footer.protocol": "Protokół Bluetooth", "footer.format": "Format treningów", "footer.releases": "Wydania",
+      "workout": { name: "Podbiegi", warm: "Rozgrzewka", fast: "Szybko", note: "Pracuj kolanami", recover: "Odpoczynek", cool: "Schłodzenie" },
+    },
+    en: {
+      "title": "HMS workout: treadmill workouts driven from your phone",
+      "nav.how": "How it works", "nav.features": "Features", "nav.format": "Workout files", "nav.download": "Download",
+      "hero.kicker": "For RZ_TreadMil Bluetooth treadmills",
+      "hero.title": "Plan every step.<br><em>The treadmill follows.</em>",
+      "hero.lead": "Design interval runs and hill walks on your Android phone. HMS workout sets the speed and incline of every step for you, even with the screen locked, so you only have to run.",
+      "hero.how": "See how it works",
+      "hero.release": "Free and open source · Android 12 or newer",
+      "hero.demo": "Designing a hill sprint workout in HMS workout, saving it and running it",
+      "how.kicker": "How it works",
+      "how.title": "From a plan to a finished run in three steps",
+      "how.lead": "No buttons to press mid-run. The app talks to the treadmill over Bluetooth, the same way its console does.",
+      "how.1.title": "Design the workout",
+      "how.1.text": "Add steps with a pace like 4:30/km or a speed, an incline, and a time or a distance. Wrap intervals in a repeat block. The profile updates as you type.",
+      "how.2.title": "Press Run and lock your phone",
+      "how.2.text": "The belt starts after the treadmill's countdown. Each step's speed and incline is sent on time; the phone vibrates and beeps when a new step begins.",
+      "how.3.title": "Finish, the belt stops",
+      "how.3.text": "After the last step the app stops the belt and shows your time and distance. Skip a step or stop early at any moment, from the app or the notification.",
+      "features.kicker": "Features", "features.title": "Built for running, not for tapping",
+      "f.1.title": "See the whole workout",
+      "f.1.text": "A profile chart shows every step at a glance: width is time, height is speed, colour goes from walk to sprint, the yellow line is the incline.",
+      "f.2.title": "Runs with the screen off",
+      "f.2.text": "The workout lives in a foreground service. The notification counts the step down and offers Skip and Stop; the screen can stay dark.",
+      "f.3.title": "Pace, not only km/h",
+      "f.3.text": "Plan in min/km if that is how you think. The app shows the exact speed the treadmill will run and the pace that results from it.",
+      "f.4.title": "Plain files you own",
+      "f.4.text": "Every workout is a small <code>.workout.yaml</code> file. Share it, keep it in a note, import it from a link or the clipboard, open it from your file manager.",
+      "f.5.title": "Finds your treadmill",
+      "f.5.text": "Search nearby Bluetooth devices and pick yours. If the connection drops mid-run, the app stops the belt as soon as it is back.",
+      "f.6.title": "Try it without a treadmill",
+      "f.6.text": "A built-in simulator runs any workout on the couch: ramps, countdown, distance and all. In English and Polish.",
+      "format.kicker": "Workout files", "format.title": "A workout is twenty lines of text",
+      "format.lead": "Write it in the app's editor or by hand. This file is the hill sprint session from the demo above.",
+      "format.shows": "What the app shows for this file",
+      "format.spec": "Read the format specification →",
+      "stat.time": "Time", "stat.distance": "Distance", "stat.steps": "Steps",
+      "download.kicker": "Download", "download.title": "Get HMS workout",
+      "download.lead": "Free, open source and without an account. Updates install over the previous version.",
+      "download.button": "Download APK",
+      "download.size": size => `Download APK · ${size} MB`,
+      "download.all": `All files on the <a href="${RELEASES}">release page</a>`,
+      "download.version": (version, url) => `Version ${version} · <a href="${url}">release notes</a> · Android 12 or newer`,
+      "download.treadmills": "Treadmills advertising as RZ_TreadMil",
+      "install.1": "Open the downloaded <b>.apk</b> on your phone.",
+      "install.2": "If Android asks, allow your browser to <b>install unknown apps</b>.",
+      "install.3": "Open <b>HMS workout</b>, allow <b>Nearby devices</b> and notifications.",
+      "install.4": "Switch the treadmill on, pick it in <b>Settings → Search nearby devices</b>, and press <b>Run</b>.",
+      "install.safety": "<b>Safety first.</b> The belt starts as soon as you press Run. Attach the safety key before every workout; Stop in the app or on the console always ends it.",
+      "footer.text": `HMS workout is part of <a href="https://github.com/drymek/treadmill">drymek/treadmill</a>, MIT licensed.<br>Not affiliated with the treadmill's manufacturer.`,
+      "footer.source": "Source", "footer.protocol": "Bluetooth protocol", "footer.format": "Workout format", "footer.releases": "Releases",
+      "workout": { name: "Hill sprints", warm: "Warm-up", fast: "Fast", note: "Drive your knees", recover: "Recover", cool: "Cool-down" },
+    },
+  };
+
+  // The hill sprint workout, expanded into steps: [minutes, km/h, incline].
+  const warm = [10, 9.2, 1], fast = [1, 13.3, 7], recover = [1.5, 8.6, 2], cool = [10, 8.6, 0];
+  const steps = [warm, ...Array.from({ length: 6 }, () => [fast, recover]).flat(), cool];
+
+  // The app's intensity scale: walk, jog, run, tempo, sprint.
+  const scale = [[3, [45, 226, 196]], [7, [60, 184, 255]], [10.5, [139, 124, 255]], [13.5, [255, 95, 177]], [17, [255, 122, 69]]];
+  function intensity(kmh) {
+    if (kmh <= scale[0][0]) return `rgb(${scale[0][1]})`;
+    for (let i = 1; i < scale.length; i++) {
+      const [k1, c1] = scale[i], [k0, c0] = scale[i - 1];
+      if (kmh <= k1) {
+        const t = (kmh - k0) / (k1 - k0);
+        return `rgb(${c0.map((c, j) => Math.round(c + (c1[j] - c) * t)).join(",")})`;
+      }
+    }
+    return `rgb(${scale.at(-1)[1]})`;
+  }
+
+  // Bar width is time, height is speed, colour is intensity; the yellow line is the incline.
+  function drawProfile(el) {
+    const total = steps.reduce((s, [m]) => s + m, 0);
+    const max = Math.max(...steps.map(([, k]) => k));
+    el.innerHTML = "";
+    const points = [];
+    let x = 0;
+    for (const [minutes, kmh, incline] of steps) {
+      const bar = document.createElement("div");
+      const color = intensity(kmh);
+      bar.className = "bar";
+      bar.style.flex = `${minutes} 1 0`;
+      bar.style.height = `${18 + 82 * kmh / max}%`;
+      bar.style.background = `linear-gradient(${color}, color-mix(in srgb, ${color} 55%, transparent))`;
+      el.appendChild(bar);
+      const y = 92 - 84 * incline / 22;
+      points.push([x / total * 100, y], [(x + minutes) / total * 100, y]);
+      x += minutes;
+    }
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "incline");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
+    const d = points.map(([px, py], i) => `${i ? "L" : "M"}${px},${py}`).join(" ");
+    svg.innerHTML =
+      `<path d="${d}" fill="none" stroke="rgba(7,8,12,.6)" stroke-width="5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>` +
+      `<path d="${d}" fill="none" stroke="#ffc857" stroke-width="2.2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+    el.appendChild(svg);
+  }
+  document.querySelectorAll(".profile").forEach(drawProfile);
+
+  // The example file, with step names in the page's language.
+  function yaml(w) {
+    const k = s => `<span class="k">${s}</span>`, v = s => `<span class="v">${s}</span>`, n = s => `<span class="n">${s}</span>`;
+    return [
+      `${k("version")}: ${n(1)}`,
+      `${k("name")}: ${v(w.name)}`,
+      `${k("steps")}:`,
+      `  - ${k("name")}: ${v(w.warm)}`,
+      `    ${k("duration")}: ${v("10m")}`,
+      `    ${k("pace")}: ${v("6:30/km")}`,
+      `    ${k("incline")}: ${n(1)}`,
+      `  - ${k("repeat")}: ${n(6)}`,
+      `    ${k("steps")}:`,
+      `      - ${k("name")}: ${v(w.fast)}`,
+      `        ${k("duration")}: ${v("1m")}`,
+      `        ${k("pace")}: ${v("4:30/km")}`,
+      `        ${k("incline")}: ${n(7)}`,
+      `        ${k("note")}: ${v(w.note)}`,
+      `      - ${k("name")}: ${v(w.recover)}`,
+      `        ${k("duration")}: ${v("1m30s")}`,
+      `        ${k("pace")}: ${v("7:00/km")}`,
+      `        ${k("incline")}: ${n(2)}`,
+      `  - ${k("name")}: ${v(w.cool)}`,
+      `    ${k("duration")}: ${v("10m")}`,
+      `    ${k("pace")}: ${v("7:00/km")}`,
+      `    ${k("incline")}: ${n(0)}`,
+    ].join("\n");
+  }
+
+  let release = null;
+  let lang = "pl";
+
+  function apply(next) {
+    lang = next;
+    const t = TEXT[lang];
+    document.documentElement.lang = lang;
+    document.title = t.title;
+    document.querySelectorAll("[data-i18n]").forEach(el => { if (typeof t[el.dataset.i18n] === "string") el.innerHTML = t[el.dataset.i18n]; });
+    document.querySelectorAll("[data-i18n-alt]").forEach(el => el.alt = t[el.dataset.i18nAlt]);
+    document.querySelectorAll("[data-set-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.setLang === lang));
+    document.getElementById("demo").src = `assets/demo-${lang}.gif`;
+    document.getElementById("yaml").innerHTML = yaml(t.workout);
+    document.getElementById("workout-name").textContent = t.workout.name;
+    document.getElementById("stat-distance").textContent = lang === "pl" ? "5,58 km" : "5.58 km";
+    showRelease();
+  }
+
+  // Once the latest release is known, the buttons download its APK directly.
+  function showRelease() {
+    if (!release) return;
+    const t = TEXT[lang];
+    document.querySelectorAll("[data-apk]").forEach(a => a.href = release.url);
+    document.querySelectorAll("[data-apk-label]").forEach(s => s.textContent = t["download.size"](release.size));
+    document.querySelectorAll("[data-release]").forEach(el => el.innerHTML = t["download.version"](release.version, release.notes));
+  }
+
+  // Language: a ?lang= link, then the visitor's earlier choice, then the browser; Polish when nothing says otherwise.
+  function initialLanguage() {
+    const asked = new URLSearchParams(location.search).get("lang");
+    if (asked in TEXT) return asked;
+    try {
+      const saved = localStorage.getItem("lang");
+      if (saved in TEXT) return saved;
+    } catch (e) {}
+    const browser = navigator.languages?.length ? navigator.languages : [navigator.language].filter(Boolean);
+    if (!browser.length || browser.some(l => l.toLowerCase().startsWith("pl"))) return "pl";
+    return "en";
+  }
+
+  document.querySelectorAll("[data-set-lang]").forEach(b => b.addEventListener("click", () => {
+    try { localStorage.setItem("lang", b.dataset.setLang); } catch (e) {}
+    apply(b.dataset.setLang);
+  }));
+  apply(initialLanguage());
+
+  fetch("https://api.github.com/repos/drymek/treadmill/releases/latest", { cache: "no-cache" })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(r => {
+      const apk = r.assets.find(a => /^hms-workout_.*\.apk$/.test(a.name));
+      if (!apk) return;
+      release = {
+        url: apk.browser_download_url,
+        size: (apk.size / 1048576).toFixed(1),
+        version: r.tag_name.replace(/^panel-v/, ""),
+        notes: r.html_url,
+      };
+      showRelease();
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>

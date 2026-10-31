@@ -14,7 +14,8 @@ is backed by a log line and a photo, and the raw data is part of the repository.
 ## HMS workout
 
 **[HMS workout](src/kotlin/workout)** is the Android app this project is built around: plan treadmill workouts
-on your phone and let the app drive the treadmill while you run.
+on your phone and let the app drive the treadmill while you run. Website and download:
+**[drymek.github.io/treadmill](https://drymek.github.io/treadmill/)** (English and Polish).
 
 - **Design every step.** A pace (`4:30/km`) or a speed, an incline, and a time or a distance; repeat blocks
   for intervals. A live profile shows the whole workout as you build it: bar width is time, height is speed,

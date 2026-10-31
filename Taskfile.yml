@@ -249,6 +249,12 @@ tasks:
       - task: kotlin:install
       - '"$ANDROID_HOME/platform-tools/adb" shell am start -n {{.ANDROID_PACKAGE}}/.MainActivity'
 
+  site:
+    desc: 'Serve the HMS workout landing page (site/) at http://localhost:8765'
+    cmds:
+      - cp src/kotlin/workout/screenshots/demo-*.gif site/assets/
+      - python3 -m http.server 8765 --directory site
+
   workout:android:
     desc: Install the Android workout app on the connected phone and open it
     dir: '{{.KOTLIN}}'
