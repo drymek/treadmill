@@ -49,7 +49,7 @@ tasks:
     desc: Scan all modules for known vulnerabilities
     cmds:
       - for: { var: GO_MODULES }
-        cmd: cd {{.ITEM}} && go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+        cmd: cd {{.ITEM}} && go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
   go:tidy:
     desc: Tidy go.mod and go.sum of all modules

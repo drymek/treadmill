@@ -16,7 +16,7 @@ Before larger changes, open an issue so we can agree on the approach.
 
 ## Development setup
 
-You need [Go](https://go.dev/dl/) 1.25+ and [Task](https://taskfile.dev/installation/).
+You need [Go](https://go.dev/dl/) 1.26+ and [Task](https://taskfile.dev/installation/).
 
 ```bash
 git clone https://github.com/drymek/treadmill.git

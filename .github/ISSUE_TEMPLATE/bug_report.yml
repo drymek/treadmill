@@ -48,6 +48,6 @@ body:
     id: environment
     attributes:
       label: Environment
-      placeholder: e.g. macOS 15.4, Go 1.25.3
+      placeholder: e.g. macOS 15.4, Go 1.27.3
     validations:
       required: true

@@ -57,7 +57,7 @@ tm.Stop(ctx)
 |---|---|
 | Device | Treadmills advertising as `RZ_TreadMil` with GATT service `FFF0` (tested on an HMS-branded treadmill) |
 | OS | macOS (CoreBluetooth), Linux (BlueZ HCI) |
-| Go | 1.25 or newer |
+| Go | 1.26 or newer |
 
 If your treadmill uses the same app but behaves differently, please open an issue and attach a probe log.
 [CONTRIBUTING.md](../../../CONTRIBUTING.md#recording-a-protocol-log) explains how to record one.
