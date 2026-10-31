@@ -1,0 +1,39 @@
+name: Pages
+
+# Publishes the HMS workout landing page in site/ to GitHub Pages on every push to main that changes it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - site/**
+      - src/kotlin/workout/screenshots/demo-*.gif
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push replaces a queued one but never cancels one in progress.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      # The demo GIFs live with the app; the page uses copies.
+      - run: cp src/kotlin/workout/screenshots/demo-*.gif site/assets/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4

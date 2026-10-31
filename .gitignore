@@ -9,3 +9,6 @@ coverage.html
 build/
 local.properties
 dist/
+
+# Copied from src/kotlin/workout/screenshots when the site is built.
+site/assets/demo-*.gif
