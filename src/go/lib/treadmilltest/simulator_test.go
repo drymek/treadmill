@@ -35,6 +35,17 @@ func until(t *testing.T, s *Simulator, cond func(protocol.Status) bool) protocol
 	return protocol.Status{}
 }
 
+// drain discards every frame already queued.
+func drain(s *Simulator) {
+	for {
+		select {
+		case <-s.Frames():
+		default:
+			return
+		}
+	}
+}
+
 func write(t *testing.T, s *Simulator, f []byte) {
 	t.Helper()
 	if err := s.Write(context.Background(), f); err != nil {
@@ -48,8 +59,12 @@ func startedSimulator(t *testing.T) *Simulator {
 	if st := next(t, s); st.State != protocol.StateIdle || !st.Compact {
 		t.Fatalf("first frame %+v, want compact idle", st)
 	}
+	// The simulator keeps queueing idle frames every tick, so drop the backlog
+	// to keep the buffer from dropping the acknowledgement, then skip whatever
+	// idle frames arrive before the write lands.
+	drain(s)
 	write(t, s, protocol.Start())
-	if st := next(t, s); st.State != protocol.StateStarting || !st.Compact {
+	if st := until(t, s, func(st protocol.Status) bool { return st.State != protocol.StateIdle }); st.State != protocol.StateStarting || !st.Compact {
 		t.Fatalf("start acknowledgement %+v, want compact starting", st)
 	}
 	until(t, s, func(st protocol.Status) bool { return st.State == protocol.StateRunning })
