@@ -25,8 +25,10 @@ protocol specification (`docs/protocol.md`) and implementations in several langu
 | `src/go/lib` | Go library: `protocol` (pure framing), `treadmill` (client, acknowledged commands, `DialReconnecting`), `bluetooth` (BLE transport), `treadmilltest` (simulator), `e2e` (hardware tests, `e2e` build tag) |
 | `src/go/panel` | terminal app (Bubble Tea v2, Lip Gloss v2), a virtual HMS console; separate module, `-sim` for the simulator |
 | `src/go/tools/probe` | research tool, separate module; logs every notification and sends any command |
+| `src/go/tools/workout` | validates `.workout.yaml` files and prints their plans (`task workout -- <file>`); parser in `lib` (package `workout`) |
 | `src/kotlin/lib` | Kotlin/JVM library (package `com.craftersy.treadmill`): `protocol`, `client` (acknowledged commands, `ReconnectingTransport`), `simulator`; no Android dependency |
 | `src/kotlin/panel` | Android app (Jetpack Compose, minSdk 31), the virtual HMS console; BLE transport in `panel/bluetooth`. One Gradle build in `src/kotlin` |
+| `docs/workout.md` | `.workout.yaml` workout file format (planned workouts for the panels) |
 | `docs/measurements` | raw session log and photos backing the specification |
 
 Record user-visible library changes in `src/go/lib/CHANGELOG.md` and `src/kotlin/lib/CHANGELOG.md` under

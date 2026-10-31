@@ -18,6 +18,7 @@ is backed by a log line and a photo, and the raw data is part of the repository.
 | Go | [`src/go/lib`](src/go/lib) | library + simulator | ✅ start/stop, speed, incline, live status, heart rate, reconnect |
 | Go | [`src/go/panel`](src/go/panel) | terminal app | ✅ virtual HMS console: display, buttons, simulator mode |
 | Go | [`src/go/tools/probe`](src/go/tools/probe) | research tool | ✅ logs every notification, sends any command |
+| Go | [`src/go/tools/workout`](src/go/tools/workout) | validator | ✅ checks `.workout.yaml` files, prints the plan |
 | Kotlin | [`src/kotlin/lib`](src/kotlin/lib) | library + simulator (JVM) | ✅ start/stop, speed, incline, live status, heart rate, reconnect |
 | Kotlin | [`src/kotlin/panel`](src/kotlin/panel) | Android app | ✅ virtual HMS console on the phone: display, buttons, simulator mode |
 
@@ -41,16 +42,24 @@ Every change merged into `main` that passes CI is published as a
 `FFF2` (`FB … FC`), status notified on `FFF1` (`FD … FE`), with a byte-sum checksum. The session log and photos
 of the display are in [`docs/measurements`](docs/measurements).
 
+[`docs/workout.md`](docs/workout.md) specifies the `.workout.yaml` file for planned workouts: steps with a pace
+or speed, an incline and a length in time or distance. Check a file with:
+
+```bash
+task workout -- plan.workout.yaml
+```
+
 ## Repository layout
 
 ```
-docs/                protocol specification
-docs/measurements/   raw session log and photos of the display
-src/go/lib/          Go library: protocol, client, BLE transport, simulator, e2e tests
-src/go/panel/        terminal app: a virtual HMS console (Bubble Tea)
-src/go/tools/probe/  research tool: logs notifications, sends commands over stdin or HTTP
-src/kotlin/lib/      Kotlin library: protocol, client, reconnect, simulator (pure JVM)
-src/kotlin/panel/    Android app: the virtual HMS console on a phone (Jetpack Compose, BLE)
+docs/                 protocol specification, workout file format
+docs/measurements/    raw session log and photos of the display
+src/go/lib/           Go library: protocol, client, BLE transport, simulator, e2e tests
+src/go/panel/         terminal app: a virtual HMS console (Bubble Tea)
+src/go/tools/probe/   research tool: logs notifications, sends commands over stdin or HTTP
+src/go/tools/workout/ workout file validator
+src/kotlin/lib/       Kotlin library: protocol, client, reconnect, simulator (pure JVM)
+src/kotlin/panel/     Android app: the virtual HMS console on a phone (Jetpack Compose, BLE)
 ```
 
 ## Tasks
@@ -65,6 +74,7 @@ task kotlin:check    # Kotlin unit tests, Android lint, debug APK
 task panel:android   # install the Android console on a phone connected with adb
 task go:e2e          # tests against a physical treadmill (belt stays still)
 task probe           # log a session with the probe tool
+task workout -- FILE # validate a workout file and print its plan
 task cam:record      # photograph the console once per second (macOS)
 ```
 

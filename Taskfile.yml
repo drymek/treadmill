@@ -256,6 +256,12 @@ tasks:
     cmds:
       - go run ./probe -dir {{.ROOT_DIR}}/.probe -name {{.TREADMILL_NAME}} {{.CLI_ARGS}}
 
+  workout:
+    desc: 'Validate workout files and print their plans, e.g. task workout -- plan.workout.yaml'
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - bin="$(mktemp -d)/workout" && go build -C {{.ROOT_DIR}}/{{.GO_TOOLS}} -o "$bin" ./workout && "$bin" {{.CLI_ARGS}}
+
   probe:cmd:
     desc: 'Send a command to a running probe, e.g. task probe:cmd -- set 2.0 0'
     cmds:
