@@ -32,7 +32,7 @@ jobs:
       # The demo GIFs live with the app; the page uses copies.
       - run: cp src/kotlin/workout/screenshots/demo-*.gif site/assets/
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
       - id: deploy
