@@ -107,18 +107,18 @@ class PanelController(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                mutableState.update { it.copy(link = Link.FAILED) }
-                setNote(e.message ?: e.toString(), true)
+                setLink(Link.FAILED, e.message ?: e.toString(), true)
                 return@launch
             }
             client = c
-            mutableState.update { it.copy(link = Link.CONNECTED) }
-            setNote("Connected. Press START.", false)
+            setLink(Link.CONNECTED, "Connected. Press START.", false)
             launch { c.status.filterNotNull().collect(::onStatus) }
             launch {
                 c.done.join()
-                mutableState.update { it.copy(link = Link.FAILED) }
-                if (!state.value.finished) setNote("Connection closed.", true)
+                mutableState.update {
+                    if (it.finished) it.copy(link = Link.FAILED)
+                    else it.copy(link = Link.FAILED, note = "Connection closed.", noteIsError = true)
+                }
             }
         }
     }
@@ -131,13 +131,12 @@ class PanelController(
     private fun onConnectionEvent(event: ConnectionEvent) {
         when (event.state) {
             ConnectionState.CONNECTED -> {
-                mutableState.update { it.copy(link = Link.CONNECTED) }
-                if (event.attempt > 0) setNote("Reconnected.", false)
+                if (event.attempt > 0) setLink(Link.CONNECTED, "Reconnected.", false)
+                else mutableState.update { it.copy(link = Link.CONNECTED) }
             }
             ConnectionState.DISCONNECTED -> mutableState.update { it.copy(link = Link.LOST) }
             ConnectionState.RECONNECT_FAILED -> {
-                mutableState.update { it.copy(link = Link.LOST) }
-                setNote("Reconnect attempt ${event.attempt} failed: ${event.error?.message}", true)
+                setLink(Link.LOST, "Reconnect attempt ${event.attempt} failed: ${event.error?.message}", true)
             }
         }
     }
@@ -155,6 +154,11 @@ class PanelController(
 
     private fun setNote(note: String, isError: Boolean) {
         mutableState.update { it.copy(note = note, noteIsError = isError) }
+    }
+
+    /** Changes the link and the note in one update, so no observer sees the new link with a stale note. */
+    private fun setLink(link: Link, note: String, isError: Boolean) {
+        mutableState.update { it.copy(link = link, note = note, noteIsError = isError) }
     }
 
     /**
