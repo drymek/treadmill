@@ -1,10 +1,10 @@
 module craftersy.com/treadmill/src/go/panel
 
-go 1.26.0
+go 1.26.7
 
 require (
 	charm.land/bubbletea/v2 v2.1.1
-	charm.land/lipgloss/v2 v2.0.6
+	charm.land/lipgloss/v2 v2.1.0
 	craftersy.com/treadmill/src/go/lib v0.0.0
 )
 
